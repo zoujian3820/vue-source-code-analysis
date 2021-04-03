@@ -31,11 +31,15 @@ export function initExtend (Vue: GlobalAPI) {
     }
 
     const Sub = function VueComponent (options) {
+      // 和Vue的内部初始化_init一样
       this._init(options)
     }
+    // 浅拷贝Vue的原型
     Sub.prototype = Object.create(Super.prototype)
+    // 把构造函数设回自身，因更改prototype时，同时也会把constructor指向Super即Vue
     Sub.prototype.constructor = Sub
     Sub.cid = cid++
+    // 把自身的options 与 Vue的options合并
     Sub.options = mergeOptions(
       Super.options,
       extendOptions
@@ -46,9 +50,11 @@ export function initExtend (Vue: GlobalAPI) {
     // the Vue instances at extension time, on the extended prototype. This
     // avoids Object.defineProperty calls for each instance created.
     if (Sub.options.props) {
+      // 初始化Props
       initProps(Sub)
     }
     if (Sub.options.computed) {
+      // 初始化Computed
       initComputed(Sub)
     }
 

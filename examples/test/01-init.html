@@ -39,6 +39,18 @@
           },
         },
       });
+
+      const extComponent = Vue.extend({
+        template: '<div>{{ text }}</div>',
+        data: function () {
+          return {
+            text: 'extend test'
+          }
+        }
+      })
+
+      const extendComponent = new extComponent().$mount()
+      document.body.appendChild(extendComponent.$el)
     </script>
   </body>
 </html>

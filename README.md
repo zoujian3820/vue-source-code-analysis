@@ -94,7 +94,36 @@
           // 初始化Vue.use方法
           // Vue的相同插件多次引用只会执行一次绑定操作, 因为插件会被this._installedPlugins缓存起来
           initUse(Vue);
+          // 初始化Vue.mixin方法
           initMixin(Vue);
+          // 初始化Vue.extend方法
+          // extend使用的是Vue的构造器方法，可生成Vue子类
+          
+          // Vue.extend + $mount 可实现全局的组件挂载到body中
+          /*
+            import Vue from 'vue'
+          
+            const extComponent = Vue.extend({
+              template: '<div>{{ text }}</div>',
+              data: function () {
+                return {
+                  text: 'extend test'
+                }
+              }
+            })
+          
+            const extendComponent = new extComponent().$mount()
+           这时候，我们就将组件渲染挂载到 body 节点上了。
+           我们可以通过 extendComponent 组件实例的$el 属性，访问实例元素节点
+           并加到body后面
+          
+            document.body.appendChild(extendComponent.$el)
+          
+          
+            $mount()传空则不会发生节点挂载，
+            只会编绎模版成render转为Vnode，发生数据渲染而不发生ui渲染
+            所以我们可以手动去append到body中
+          */
           initExtend(Vue);
           initAssetRegisters(Vue);
           ```
