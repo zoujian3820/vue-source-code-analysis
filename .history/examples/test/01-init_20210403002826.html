@@ -1,0 +1,41 @@
+<!--
+ * @Author: your name
+ * @Date: 2021-03-28 22:39:01
+ * @LastEditTime: 2021-04-03 00:28:26
+ * @LastEditors: mrzou
+ * @Description: In User Settings Edit
+ * @FilePath: \vue\examples\test\01-init.html
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charser="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Document</title>
+    <script src="../../dist/vue.js"></script>
+  </head>
+
+  <body>
+    <div id="app">
+      <button @click="onclick">Event事件onclick</button>
+    </div>
+    <script>
+      Vue.performance = true;
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            obj: {},
+          };
+        },
+        methods: {
+          onclick(e) {
+            // console.log(e, this, this.constructor._parentListeners)
+            this.$set(this.obj, "abc", "hahah");
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
