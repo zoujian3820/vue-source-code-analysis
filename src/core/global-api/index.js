@@ -17,6 +17,7 @@ import {
   mergeOptions,
   defineReactive,
 } from "../util/index";
+import KeepAlive from "../components/keep-alive";
 
 export function initGlobalAPI(Vue: GlobalAPI) {
   // config
@@ -60,8 +61,10 @@ export function initGlobalAPI(Vue: GlobalAPI) {
   // components with in Weex's multi-instance scenarios.
   Vue.options._base = Vue;
 
+  // 添加KeepAlive全局组件
   extend(Vue.options.components, builtInComponents);
 
+  // 初始化Vue.use方法
   initUse(Vue);
   initMixin(Vue);
   initExtend(Vue);

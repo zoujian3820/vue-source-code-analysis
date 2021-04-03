@@ -63,5 +63,39 @@
       }
       ```
 	
-	
+- src\core\index.js
+
+    ```javascript
+    import Vue from './instance/index'
+    import { initGlobalAPI } from './global-api/index'
+    //初始化一些全局api 和 一些静态方法
+    initGlobalAPI(Vue)
+    ```
+    
+    - src\core\global-api\index.js
+    
+      - 初始化一些全局api 和 一些静态方法
+    
+          ```javascript
+          Vue.util = {
+            warn,
+            extend,
+            mergeOptions,
+            defineReactive
+          };
+          Vue.set = set;
+          Vue.delete = del;
+          Vue.nextTick = nextTick;
+          Vue.options = Object.create(null);
+          // 添加KeepAlive全局组件
+          // builtInComponents: {KeepAlive}
+          extend(Vue.options.components, builtInComponents);
+          
+          // 初始化Vue.use方法
+          // Vue的相同插件多次引用只会执行一次绑定操作, 因为插件会被this._installedPlugins缓存起来
+          initUse(Vue);
+          initMixin(Vue);
+          initExtend(Vue);
+          initAssetRegisters(Vue);
+          ```
 

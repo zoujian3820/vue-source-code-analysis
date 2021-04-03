@@ -216,10 +216,18 @@ export const bind = Function.prototype.bind
  * Convert an Array-like object to a real Array.
  */
 export function toArray (list: any, start?: number): Array<any> {
+  // 将arguments类数组转成真正的数组
+  // start 表示从哪个位置开始转换数组
+  // toArray([1,2,3], 1)   [2,3]
+  // toArray([1,2,3], 0)   [1,2,3]
   start = start || 0
   let i = list.length - start
   const ret: Array<any> = new Array(i)
+
+  // i-- 先读值后运算
+  // i=2; i-- === 2
   while (i--) {
+    // 此时 i 已经做过减值运算了
     ret[i] = list[i + start]
   }
   return ret

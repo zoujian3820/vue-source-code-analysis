@@ -22,6 +22,9 @@
     </div>
     <script>
       // Vue.performance = true;
+      Vue.use({install(){
+        console.log(arguments)
+        }})
       new Vue({
         el: "#app",
         data() {
