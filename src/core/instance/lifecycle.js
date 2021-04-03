@@ -64,11 +64,16 @@ export function lifecycleMixin (Vue: Class<Component>) {
     vm._vnode = vnode
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
+
+    // 如果之前(上次)没有虚拟dom 则执行初始化render操作
+    // 初始化只走一次， 下面的更新会走 N 次
     if (!prevVnode) {
       // initial render
       vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
     } else {
       // updates
+
+      // 更新的render 操作
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
     restoreActiveInstance()
@@ -164,6 +169,7 @@ export function mountComponent (
       }
     }
   }
+  // 调用将要挂载节点前的生命周期函数
   callHook(vm, 'beforeMount')
 
   let updateComponent
@@ -186,7 +192,11 @@ export function mountComponent (
       measure(`vue ${name} patch`, startTag, endTag)
     }
   } else {
+    // 定义了组件更新的函数 updateComponent
+    // 此刻不会执行
     updateComponent = () => {
+      // _update 更新函数
+      // _render 渲染函数 生成 Vnode虚拟dom
       vm._update(vm._render(), hydrating)
     }
   }
@@ -194,6 +204,10 @@ export function mountComponent (
   // we set this to vm._watcher inside the watcher's constructor
   // since the watcher's initial patch may call $forceUpdate (e.g. inside child
   // component's mounted hook), which relies on vm._watcher being already defined
+
+  // vue1中有调用的属性，一个属性一个watcher
+  // 在vue2中一个组件了个watcher 粒度加大为了减少watcher 减少cpu性能消耗
+  // Watcher内部会调用 updateComponent 组件更新函数
   new Watcher(vm, updateComponent, noop, {
     before () {
       if (vm._isMounted && !vm._isDestroyed) {
@@ -207,6 +221,8 @@ export function mountComponent (
   // mounted is called for render-created child components in its inserted hook
   if (vm.$vnode == null) {
     vm._isMounted = true
+
+    // 调用节点挂载完成生命周期函数
     callHook(vm, 'mounted')
   }
   return vm

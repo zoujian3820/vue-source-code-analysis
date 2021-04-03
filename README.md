@@ -47,11 +47,12 @@
   - 在原型上添加了patch函数，并区分平台
       ```javascript
       // install platform patch function
-      // 在原型上添加了patch函数，并区分平台
+      // 在原型上添加了patch(补丁)函数，并区分平台
+      // 用来做初始化和更新的
       Vue.prototype.__patch__ = inBrowser ? patch : noop
       ```
 
-  - 原型上再次添加了$mount函数
+  - 原型上再次添加了$mount函数, 实现$mount 初始化挂载
       ```javascript
       // public mount method
       Vue.prototype.$mount = function (
@@ -61,20 +62,22 @@
           el = el && inBrowser ? query(el) : undefined
           return mountComponent(this, el, hydrating)
       }
+  
+      $mount('#app') => mountComponent => render() => vdom => patch() => 真实dom
       ```
-	
-- src\core\index.js
 
+- src\core\index.js
+    
     ```javascript
     import Vue from './instance/index'
     import { initGlobalAPI } from './global-api/index'
-    //初始化一些全局api 和 一些静态方法
+    //初始化全局api
     initGlobalAPI(Vue)
     ```
     
     - src\core\global-api\index.js
     
-      - 初始化一些全局api 和 一些静态方法
+      - 初始化全局api
     
           ```javascript
           Vue.util = {
@@ -127,4 +130,135 @@
           initExtend(Vue);
           initAssetRegisters(Vue);
           ```
+          
+    - vue\src\core\instance\index.js
 
+      - Vue的构造函数及声明实例的属性和方法
+        ```
+        // 构造函数 new Vue(options)
+        function Vue (options) {
+          if (process.env.NODE_ENV !== 'production' &&
+            !(this instanceof Vue)
+          ) {
+            warn('Vue is a constructor and should be called with the `new` keyword')
+          }
+          // 初始化
+          this._init(options)
+          /*
+          _init方法包括以下操作
+          
+          面试题： new Vue发生了哪些事
+            1. 做了用户配置选项和系统配置选项的合并
+            2. 实例相关的属性进了初始化 如: $parent $root $children $refs
+            3. 监听自己的自定义事件
+            4. 解析自己的插槽
+            5. 同时会把自己内部的一些数据进行响应式的处理 如: props(属性) methosds(方法) data computed watch
+
+          面试题： 为什么new Vue({el: '#app'})时设置了 el 不用调用$mount
+          
+          if (vm.$options.el) {
+            vm.$mount(vm.$options.el)
+          }
+          
+          */
+        }
+        
+        // 初始化实例方法mixin
+        // _init方法就在其中
+        initMixin(Vue)
+        // 我们熟悉的其他实例属性和方法由下面这些混入
+        stateMixin(Vue)
+        eventsMixin(Vue)
+        lifecycleMixin(Vue)
+        renderMixin(Vue)
+        ```
+        
+    - src\core\instance\lifecycle.js
+    
+      -  mountComponent方法 会创建一个 updateComponents 组件更新方法  
+      - 然后 new Watcher()的时候传入了 updateComponents 其内部会调用该方法
+      - 然后 updateComponents 方法内部会调用 render() 渲染方法生成 Vnode
+      - 并传参给 update() 更新方法 其内部会调用 patch()函数 变成真实dom
+      
+      ```javascript
+      export function mountComponent (
+        vm: Component,
+        el: ?Element,
+        hydrating?: boolean
+      ): Component {
+        vm.$el = el
+        if (!vm.$options.render) {
+          vm.$options.render = createEmptyVNode
+          if (process.env.NODE_ENV !== 'production') {
+             // 无关的删除....
+          }
+        }
+        // 调用将要挂载节点前的生命周期函数
+        callHook(vm, 'beforeMount')
+      
+        let updateComponent
+        /* istanbul ignore if */
+        if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
+            // 无关的删除....
+        } else {
+          // 定义了组件更新的函数 updateComponent
+          // 此刻不会执行
+          updateComponent = () => {
+            // _update 更新函数
+            // _render 渲染函数 生成 Vnode虚拟dom
+            vm._update(vm._render(), hydrating)
+          }
+        }
+      
+        // we set this to vm._watcher inside the watcher's constructor
+        // since the watcher's initial patch may call $forceUpdate (e.g. inside child
+        // component's mounted hook), which relies on vm._watcher being already defined
+      
+        // vue1中有调用的属性，一个属性一个watcher
+        // 在vue2中一个组件了个watcher 粒度加大为了减少watcher 减少cpu性能消耗
+        // Watcher内部会调用 updateComponent 组件更新函数
+        new Watcher(vm, updateComponent, noop, {
+          before () {
+            if (vm._isMounted && !vm._isDestroyed) {
+              callHook(vm, 'beforeUpdate')
+            }
+          }
+        }, true /* isRenderWatcher */)
+        hydrating = false
+      
+        // manually mounted instance, call mounted on self
+        // mounted is called for render-created child components in its inserted hook
+        if (vm.$vnode == null) {
+          vm._isMounted = true
+      
+          // 调用节点挂载完成生命周期函数
+          callHook(vm, 'mounted')
+        }
+        return vm
+      }
+      ```
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      

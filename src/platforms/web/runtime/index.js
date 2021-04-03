@@ -37,15 +37,19 @@ extend(Vue.options.directives, platformDirectives)
 extend(Vue.options.components, platformComponents)
 
 // install platform patch function
-// 在原型上添加了patch函数，并区分平台
+// 在原型上添加了patch(补丁)函数，并区分平台
+// 用来做初始化和更新的
 Vue.prototype.__patch__ = inBrowser ? patch : noop
 
 // public mount method
+// 实现$mount  初始化挂载
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
 ): Component {
   el = el && inBrowser ? query(el) : undefined
+
+  // mountComponent 函数内部
   return mountComponent(this, el, hydrating)
 }
 

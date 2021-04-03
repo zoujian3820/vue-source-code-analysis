@@ -13,8 +13,13 @@ export function initEvents (vm: Component) {
   vm._events = Object.create(null)
   vm._hasHookEvent = false
   // init parent attached events
+  // <Child @myclick="onmyclick" />
+  // this.$on('myclick', onmyclick)
+  // this.$emit('myclick')
+  // 事件的派发和监听都是子组件
+
+  // listeners: 从父组件那里拿过来的事件回调函数（onmyclick）
   const listeners = vm.$options._parentListeners
-  console.log(listeners, vm.$options)
   if (listeners) {
     updateComponentListeners(vm, listeners)
   }
