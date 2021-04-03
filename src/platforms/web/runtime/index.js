@@ -18,6 +18,10 @@ import {
 import { patch } from './patch'
 import platformDirectives from './directives/index'
 import platformComponents from './components/index'
+import model from "./directives/model";
+import show from "./directives/show";
+import Transition from "./components/transition";
+import TransitionGroup from "./components/transition-group";
 
 // install platform specific utils
 Vue.config.mustUseProp = mustUseProp
@@ -27,10 +31,13 @@ Vue.config.getTagNamespace = getTagNamespace
 Vue.config.isUnknownElement = isUnknownElement
 
 // install platform runtime directives & components
+// 添加全局指令 model  show
 extend(Vue.options.directives, platformDirectives)
+// 添加全局组件 Transition  TransitionGroup
 extend(Vue.options.components, platformComponents)
 
 // install platform patch function
+// 在原型上添加了patch函数，并区分平台
 Vue.prototype.__patch__ = inBrowser ? patch : noop
 
 // public mount method

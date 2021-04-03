@@ -77,8 +77,8 @@ export function createASTElement (
  * Convert HTML string to AST.
  */
 export function parse (
-  template: string,
-  options: CompilerOptions
+  template: string, // template字符串模版
+  options: CompilerOptions // compileToFunctions函数 传过来的配置项
 ): ASTElement | void {
   warn = options.warn || baseWarn
 
@@ -88,8 +88,12 @@ export function parse (
   const isReservedTag = options.isReservedTag || no
   maybeComponent = (el: ASTElement) => !!el.component || !isReservedTag(el.tag)
 
+  // 把modules每个item中的 transformNode 方法组成一个数组返回
+  // [{transformNode: ()=>{}}, ...]
   transforms = pluckModuleFunction(options.modules, 'transformNode')
+  // 把modules每个item中的 preTransformNode 方法组成一个数组返回
   preTransforms = pluckModuleFunction(options.modules, 'preTransformNode')
+  // 把modules每个item中的 postTransformNode 方法组成一个数组返回
   postTransforms = pluckModuleFunction(options.modules, 'postTransformNode')
 
   delimiters = options.delimiters
@@ -201,6 +205,8 @@ export function parse (
     }
   }
 
+  // 开始解析html树了
+  // 将html模板字符串转化为AST
   parseHTML(template, {
     warn,
     expectHTML: options.expectHTML,
@@ -210,6 +216,7 @@ export function parse (
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
     outputSourceRange: options.outputSourceRange,
+    // 当解析到开始标签时，调用该函数
     start (tag, attrs, unary, start, end) {
       // check namespace.
       // inherit parent ns if there is one
@@ -296,7 +303,7 @@ export function parse (
         closeElement(element)
       }
     },
-
+    // 当解析到结束标签时，调用该函数
     end (tag, start, end) {
       const element = stack[stack.length - 1]
       // pop stack
@@ -307,7 +314,7 @@ export function parse (
       }
       closeElement(element)
     },
-
+    // 当解析到文本时，调用该函数
     chars (text: string, start: number, end: number) {
       if (!currentParent) {
         if (process.env.NODE_ENV !== 'production') {
@@ -379,6 +386,7 @@ export function parse (
         }
       }
     },
+    // 当解析到注释时，调用该函数
     comment (text: string, start, end) {
       // adding anything as a sibling to the root node is forbidden
       // comments should still be allowed, but ignored
@@ -397,6 +405,8 @@ export function parse (
     }
   })
   return root
+
+
 }
 
 function processPre (el) {

@@ -17,3 +17,51 @@
   - 如需了解哪个模块，可在其中做相应调用处理，然后断点调试
 
 
+
+## 代码结构
+
+- 入口src\platforms\web\entry-runtime-with-compiler.js
+
+  - 重新封装$mount（作用：将template编绎成render）
+
+    - **内部判断并获取template将其转换成render函数**
+      - 其中compileToFunctions方法调用了parse方法再调用parseHTML解析html生成AST树
+      - 再执行封装前的mount函数
+
+  - 给Vue添加一个静态的compile编绎器方法
+    ```javascript
+    // 给Vue添加一个静态的compile编绎器方法
+    Vue.compile = compileToFunctions
+    ```
+
+- src\platforms\web\runtime\index.js
+
+  - 注册全局指令model show与组件Transition TransitionGroup
+      ```javascript
+      // 添加全局指令 model  show
+      extend(Vue.options.directives, platformDirectives)
+      // 添加全局组件 Transition  TransitionGroup
+      extend(Vue.options.components, platformComponents)
+      ```
+
+  - 在原型上添加了patch函数，并区分平台
+      ```javascript
+      // install platform patch function
+      // 在原型上添加了patch函数，并区分平台
+      Vue.prototype.__patch__ = inBrowser ? patch : noop
+      ```
+
+  - 原型上再次添加了$mount函数
+      ```javascript
+      // public mount method
+      Vue.prototype.$mount = function (
+      	el?: string | Element,
+      	hydrating?: boolean
+      ): Component {
+          el = el && inBrowser ? query(el) : undefined
+          return mountComponent(this, el, hydrating)
+      }
+      ```
+	
+	
+

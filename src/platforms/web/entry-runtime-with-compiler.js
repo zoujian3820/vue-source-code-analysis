@@ -107,6 +107,7 @@ Vue.prototype.$mount = function (
       }
     }
   }
+  // 调用封装前的$mount做后续处理, 并return其反回值
   return mount.call(this, el, hydrating)
 }
 
@@ -124,6 +125,7 @@ function getOuterHTML (el: Element): string {
   }
 }
 
+// 给Vue添加一个静态的compile编绎器方法
 Vue.compile = compileToFunctions
 
 export default Vue

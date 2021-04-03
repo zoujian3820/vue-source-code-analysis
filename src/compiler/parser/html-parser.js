@@ -62,14 +62,22 @@ export function parseHTML (html, options) {
     last = html
     // Make sure we're not in a plaintext content element like script/style
     if (!lastTag || !isPlainTextElement(lastTag)) {
+      // 从左到右，获取最近的一个标签（开始|结束 标签）的起始位置
       let textEnd = html.indexOf('<')
+      // 为0 即标签是该字符的开始位置
       if (textEnd === 0) {
         // Comment:
+        // 是否是一个html注释的开头 <!--
+        // comment: 正则 /^<!\--/
         if (comment.test(html)) {
+          // 是注释的话，获取注释结束 --> 的位置
           const commentEnd = html.indexOf('-->')
 
           if (commentEnd >= 0) {
+            // shouldKeepComment：如果要保留注释
             if (options.shouldKeepComment) {
+              // 提取注释字符(注释开头占4个字符， 注释结束的位置)
+              // 调用comment方法解析注释
               options.comment(html.substring(4, commentEnd), index, index + commentEnd + 3)
             }
             advance(commentEnd + 3)
@@ -78,6 +86,12 @@ export function parseHTML (html, options) {
         }
 
         // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
+        /**
+         * 如果是垃圾IE的兼容注释
+         *  <![if !IE]>
+         *     <link href="non-ie.css" rel="stylesheet">
+         *  <![endif]>
+         */
         if (conditionalComment.test(html)) {
           const conditionalEnd = html.indexOf(']>')
 
@@ -88,6 +102,7 @@ export function parseHTML (html, options) {
         }
 
         // Doctype:
+        // 如果是 /^<!DOCTYPE [^>]+>/i
         const doctypeMatch = html.match(doctype)
         if (doctypeMatch) {
           advance(doctypeMatch[0].length)
@@ -95,6 +110,7 @@ export function parseHTML (html, options) {
         }
 
         // End tag:
+        // 如果是结束标签 ^<\\/${qnameCapture}[^>]*>
         const endTagMatch = html.match(endTag)
         if (endTagMatch) {
           const curIndex = index
@@ -104,6 +120,7 @@ export function parseHTML (html, options) {
         }
 
         // Start tag:
+        // 如果是开始标签
         const startTagMatch = parseStartTag()
         if (startTagMatch) {
           handleStartTag(startTagMatch)
@@ -115,6 +132,7 @@ export function parseHTML (html, options) {
       }
 
       let text, rest, next
+
       if (textEnd >= 0) {
         rest = html.slice(textEnd)
         while (
@@ -132,6 +150,7 @@ export function parseHTML (html, options) {
         text = html.substring(0, textEnd)
       }
 
+      // 没有则为纯文本节点
       if (textEnd < 0) {
         text = html
       }
