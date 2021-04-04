@@ -295,52 +295,53 @@
           -  初始创建一次 new Observer(value)
       
           - this.walk(value)  ->  defineReactive
-      
-              ```javascript
-              // defineReactive函数
-          const dep = new Dep()
-              Object.defineProperty(obj, key, {
-                  enumerable: true,
-                  configurable: true,
-                  get: function reactiveGetter () {
-                    const value = getter ? getter.call(obj) : val
-                    if (Dep.target) {
-                      // 依赖收集 Vue2中一个组件一个Watcher
-                      // dep n:1 watcher
-                      // 如果用户手动创建 watcher 比如 watch选 this.$watch(key, cb)
-                      // dep 1:n watcher
-                      dep.depend()
-                      if (childOb) {
-                        // 如果有子ob，子ob也要做依赖收集
-                        childOb.dep.depend()
-                        if (Array.isArray(value)) {
-                          dependArray(value)
-                        }
-                      }
+          
+            ```javascript
+            // defineReactive函数
+            const dep = new Dep()
+            Object.defineProperty(obj, key, {
+              enumerable: true,
+              configurable: true,
+              get: function reactiveGetter () {
+                const value = getter ? getter.call(obj) : val
+                if (Dep.target) {
+                  // 依赖收集 Vue2中一个组件一个Watcher
+                  // dep n:1 watcher
+                  // 如果用户手动创建 watcher 比如 watch选 this.$watch(key, cb)
+                  // dep 1:n watcher
+                  dep.depend()
+                  if (childOb) {
+                    // 如果有子ob，子ob也要做依赖收集
+                    childOb.dep.depend()
+                    if (Array.isArray(value)) {
+                      dependArray(value)
                     }
-                    return value
-                  },
-                  set: function reactiveSetter (newVal) {
-                    const value = getter ? getter.call(obj) : val
-                    /* eslint-disable no-self-compare */
-                    if (newVal === value || (newVal !== newVal && value !== value)) {
-                      return
-                    }
-                    /* eslint-enable no-self-compare */
-                    if (process.env.NODE_ENV !== 'production' && customSetter) {
-                      customSetter()
-                    }
-                    // #7981: for accessor properties without setter
-                    if (getter && !setter) return
-                    if (setter) {
-                      setter.call(obj, newVal)
-                    } else {
-                      val = newVal
-                    }
-                    childOb = !shallow && observe(newVal)
-                    dep.notify()
                   }
-                })
-              ```
+                }
+                return value
+              },
+              set: function reactiveSetter (newVal) {
+                const value = getter ? getter.call(obj) : val
+                /* eslint-disable no-self-compare */
+                if (newVal === value || (newVal !== newVal && value !== value)) {
+                  return
+                }
+                /* eslint-enable no-self-compare */
+                if (process.env.NODE_ENV !== 'production' && customSetter) {
+                  customSetter()
+                }
+                // #7981: for accessor properties without setter
+                if (getter && !setter) return
+                if (setter) {
+                  setter.call(obj, newVal)
+                } else {
+                  val = newVal
+                }
+                childOb = !shallow && observe(newVal)
+                dep.notify()
+              }
+            })
+            ```
+              
     
     
