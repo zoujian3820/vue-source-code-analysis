@@ -34,10 +34,16 @@ const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
 
 function sameVnode (a, b) {
   return (
+    // 第一比较Vnode 的key 是否相同
+    // 所以 v-for 中 key 非常重要
     a.key === b.key && (
       (
+        // 比较Vnode 的标签 是否相同
         a.tag === b.tag &&
+        // 比较Vnode 是否都是注释
         a.isComment === b.isComment &&
+        // 比较Vnode 的data是否都定义 并且 是否都不是input
+        // 是的情况 属性是否都相同
         isDef(a.data) === isDef(b.data) &&
         sameInputType(a, b)
       ) || (
@@ -68,9 +74,16 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
 }
 
 export function createPatchFunction (backend) {
+  // 真正执行的 patch 函数在下面 有return
+  // return function patch (oldVnode, vnode, hydrating, removeOnly) {
+
   let i, j
   const cbs = {}
 
+  // 节点操作和属性操作
+  // 区分平台的操作已经在处部调用传参时，做了区分处理
+  // 原理是把所有的属性及方法名，不同平台，都取了相同的命名，进行封装
+  // 所以跨平台调用时，调用的都是自己平台特有的方法
   const { modules, nodeOps } = backend
 
   for (i = 0; i < hooks.length; ++i) {
@@ -697,8 +710,25 @@ export function createPatchFunction (backend) {
     }
   }
 
+
+
+  // patch 函数开始执行
+  // src\core\instance\lifecycle.js
+  // lifecycleMixin 中的 _update方法有调用
+
+  // 初始化
+  // vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
+  // 更新的render 操作
+  // vm.$el = vm.__patch__(prevVnode, vnode)
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
+
+    // Vnode中的算法是只能是单根节点
+    // 所以在template中必需要写一个元素包裹住所有元素
+    // 否则会报错
+
+    // 判断Vnode是不是不存在
     if (isUndef(vnode)) {
+      // 如果旧的Vnode还存在，则删除
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
       return
     }
@@ -711,16 +741,24 @@ export function createPatchFunction (backend) {
       isInitialPatch = true
       createElm(vnode, insertedVnodeQueue)
     } else {
+      // 是否定义了旧的Vnode, 初始化 则为直实的根节点 vm.$el
       const isRealElement = isDef(oldVnode.nodeType)
+
+      // 如果没有旧的Vnode 并且 两个Vnode 都相同
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
         patchVnode(oldVnode, vnode, insertedVnodeQueue, null, null, removeOnly)
       } else {
+        // 如存在旧 Vnode
         if (isRealElement) {
           // mounting to a real element
           // check if this is server-rendered content and if we can perform
           // a successful hydration.
+
+          // 如果旧Vnode 是元素节点，并且带有 data-server-rendered 属性
+          // 应该是指服务端渲染
           if (oldVnode.nodeType === 1 && oldVnode.hasAttribute(SSR_ATTR)) {
+            // 则删掉这个属性
             oldVnode.removeAttribute(SSR_ATTR)
             hydrating = true
           }
@@ -740,21 +778,37 @@ export function createPatchFunction (backend) {
           }
           // either not server-rendered, or hydration failed.
           // create an empty node and replace it
+
+          // 旧的标准化一下，转成一个 真实的Vnode
           oldVnode = emptyNodeAt(oldVnode)
         }
 
         // replacing existing element
+
+        // 获取旧的Vnode 的真实节点
+        // 初始化，就是 options 中传进来的 el
         const oldElm = oldVnode.elm
+        // 获取旧的Vnode dom节点的父元素
+        // 如果是初始化，则parent是body
         const parentElm = nodeOps.parentNode(oldElm)
 
         // create new node
+        // 创建元素节点
         createElm(
           vnode,
           insertedVnodeQueue,
           // extremely rare edge case: do not insert if old element is in a
           // leaving transition. Only happens when combining transition +
           // keep-alive + HOCs. (#4590)
+
+          // 获取旧Vnode 的元素父节点
+          // 然后把生成的真实dom 追加到里面
           oldElm._leaveCb ? null : parentElm,
+
+         // return node.nextSibling
+         //  旧Vnode元素旁边的下个兄弟节点
+         //  因为是追加 inser 操作，所以还要一个参照节点
+         //  parentElm.insertBefore(oldElm, vnodeElm)
           nodeOps.nextSibling(oldElm)
         )
 
@@ -789,9 +843,15 @@ export function createPatchFunction (backend) {
         }
 
         // destroy old node
+
+        // 如果旧的Vnode真实父节点dom存在
+        // 则肯定是初始化的update函进，走进来的 父节点就是 el: "#app" 这个app
+        // 并且删除它
         if (isDef(parentElm)) {
           removeVnodes([oldVnode], 0, 0)
         } else if (isDef(oldVnode.tag)) {
+          // 如果没有真实节点，则应该是更新的update函数，走进来的
+          // 此时只是一个旧的Vnode
           invokeDestroyHook(oldVnode)
         }
       }

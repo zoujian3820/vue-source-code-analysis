@@ -9,4 +9,7 @@ import platformModules from 'web/runtime/modules/index'
 // built-in modules have been applied.
 const modules = platformModules.concat(baseModules)
 
+// 执行 createPatchFunction 函数
+// 反回内部的闭包函数 patch
+// return function patch (oldVnode, vnode, hydrating, removeOnly) {
 export const patch: Function = createPatchFunction({ nodeOps, modules })
