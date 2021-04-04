@@ -134,7 +134,7 @@
     - vue\src\core\instance\index.js
 
       - Vue的构造函数及声明实例的属性和方法
-        ```
+        ```javascript
         // 构造函数 new Vue(options)
         function Vue (options) {
           if (process.env.NODE_ENV !== 'production' &&
