@@ -15,8 +15,9 @@ import {
   remove,
   emptyObject,
   validateProp,
-  invokeWithErrorHandling
+  invokeWithErrorHandling, nextTick
 } from '../util/index'
+import {queueWatcher} from "../observer/scheduler";
 
 export let activeInstance: any = null
 export let isUpdatingChildComponent: boolean = false
@@ -211,7 +212,12 @@ export function mountComponent (
   // vue1中有调用的属性，一个属性一个watcher
   // 在vue2中一个组件了个watcher 粒度加大为了减少watcher 减少cpu性能消耗
   // Watcher内部会调用 updateComponent 组件更新函数
+  // 初始化的 渲染 watch 在new Watcher时，内部就会立马调用一次get方法 => updateComponent
+
   new Watcher(vm, updateComponent, noop, {
+    // 数据发生变化时，调用了 Watcher的 update 方法，而update方法中又调用了 queueWatcher 方法
+    // 并将当前 watch 加入 watch 队列， 然后通过 nextTick方法把 watch队列加入 微任务队列中
+    // 当微任务队列执行 watch 队列时， flushSchedulerQueue 方法才执行到before方法
     before () {
       if (vm._isMounted && !vm._isDestroyed) {
         callHook(vm, 'beforeUpdate')

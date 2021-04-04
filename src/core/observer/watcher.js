@@ -181,6 +181,8 @@ export default class Watcher {
     } else if (this.sync) {
       this.run()
     } else {
+      // 加入 watch 队列
+      // 相同的watch只会加入一次 通过watcher.id 判断
       queueWatcher(this)
     }
   }

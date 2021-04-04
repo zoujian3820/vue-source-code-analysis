@@ -196,7 +196,9 @@ export function queueWatcher (watcher: Watcher) {
 
     // 如果执行过加入微任务队列的操作
     // 并且在微任务队列中还未清空
-    // 则不再加入
+    // 则不再加入, 即当前的微任务队列中，只会存在一个watch的队列任务
+    // microtask: [..., queue[watch1，watch2...], ...]
+
     // 因为所有的 watch 更新都在 queue 队列中管理
     // 而微任务队列执行到当前的 flushSchedulerQueue 函数时
     // flushSchedulerQueue 函数会去遍历 执行 queue 队列中的所有 watch 更新
