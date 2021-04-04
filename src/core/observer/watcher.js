@@ -108,6 +108,25 @@ export default class Watcher {
     // targetStack.push(target)
     // Dep.target = target
     pushTarget(this)
+
+    /**
+    看完 get 函数肯定会有点懵逼
+     Dep.target = target
+     赋值后给谁用？
+     难道不是 为了 在调用数据时 触发 Object.defineProperty
+     方法的get 函数  再给Dep 做依赖收集吗 ？
+     尴尬的是此处没看到有 this.name  .xxx 这种get操作 ！！
+
+     其实想想 接下来的 this.getter 函数， 实质调用的就是 updateComponent 方法
+     而 updateComponent 方法中又调用了 _render 方法
+          vm._update(vm._render(), hydrating)
+     render方法中要把节点转成虚拟dom  刚好不就用到了 响应式数据吗
+       render(h) {
+          return h("a", { attrs: { href: `#${this.to}` } }, this.$slots.default);
+        }
+     所以 就是render函数触发了数据调用  进而促成 watcher 的收集
+    * */
+
     let value
     const vm = this.vm
     try {
@@ -219,6 +238,7 @@ export default class Watcher {
   run () {
     if (this.active) {
       // 调用了get方法 即调用了  updateComponent方法
+      // 组件级别的watcher只走下面的 get方法
       const value = this.get()
       if (
         value !== this.value ||

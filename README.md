@@ -67,18 +67,18 @@
       ```
 
 - src\core\index.js
-    
+
     ```javascript
     import Vue from './instance/index'
     import { initGlobalAPI } from './global-api/index'
     //初始化全局api
     initGlobalAPI(Vue)
     ```
-    
+
     - src\core\global-api\index.js
-    
+
       - 初始化全局api
-    
+
           ```javascript
           Vue.util = {
             warn,
@@ -130,7 +130,7 @@
           initExtend(Vue);
           initAssetRegisters(Vue);
           ```
-          
+      
     - vue\src\core\instance\index.js
 
       - Vue的构造函数及声明实例的属性和方法
@@ -172,9 +172,9 @@
         lifecycleMixin(Vue)
         renderMixin(Vue)
         ```
-        
+      
     - src\core\instance\lifecycle.js
-    
+
       -  mountComponent方法 会创建一个 updateComponents 组件更新方法  
       - 然后 new Watcher()的时候传入了 updateComponents 其内部会调用该方法
       - 然后 updateComponents 方法内部会调用 render() 渲染方法生成 Vnode
@@ -238,27 +238,109 @@
       }
       ```
       
+    - mountComponent  方法  -> new Watcher()    初始组件依赖收集
+
+      - Watcher 中初始化调用了get函数
+        
+        - get ->  pushTarget(this)  ->   Dep.target = target (当前watcher)
+        
+          ```javascript
+          // pushTarget(this)
+          export function pushTarget (target: ?Watcher) {
+            targetStack.push(target)
+            Dep.target = target
+          }
+          ```
+        
+          
+        
+        - 然后get函数中会调用updateComponent 方法，其中又调用了render方法创建Vnode
+        
+        - 而$createElement函数调用时，有使用到响应式数据
+        
+          ```javascript
+          render(h) {
+            return h("a", { attrs: { href: `#${this.to}` } }, this.$slots.default);
+              
+          }
+          ```
+        
+          所以立即触发了下面defineReactive 函数中 Object.defineProperty的 get方法执行 dep.depend()
+        
+          成功收集依赖 mountComponent  中的 new Watcher() 的实例 
+        
+          ```javascript
+          if (Dep.target) {
+                  // 依赖收集 Vue2中一个组件一个Watcher
+                  // dep n:1 watcher
+                  // 如果用户手动创建 watcher 比如 watch选 this.$watch(key, cb)
+                  // dep 1:n watcher
+                  dep.depend()
+                  if (childOb) {
+                    // 如果有子ob，子ob也要做依赖收集
+                    childOb.dep.depend()
+                    if (Array.isArray(value)) {
+                      dependArray(value)
+                    }
+                  }
+                }
+          ```
+        
+          
+        
+      - new Vue时 _init方法 -> initState(vm) 数据响应初始化
       
+        - 递归的响应式处理 observe(data, true)
       
+          -  初始创建一次 new Observer(value)
       
+          - this.walk(value)  ->  defineReactive
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+              ```javascript
+              // defineReactive函数
+          const dep = new Dep()
+              Object.defineProperty(obj, key, {
+                  enumerable: true,
+                  configurable: true,
+                  get: function reactiveGetter () {
+                    const value = getter ? getter.call(obj) : val
+                    if (Dep.target) {
+                      // 依赖收集 Vue2中一个组件一个Watcher
+                      // dep n:1 watcher
+                      // 如果用户手动创建 watcher 比如 watch选 this.$watch(key, cb)
+                      // dep 1:n watcher
+                      dep.depend()
+                      if (childOb) {
+                        // 如果有子ob，子ob也要做依赖收集
+                        childOb.dep.depend()
+                        if (Array.isArray(value)) {
+                          dependArray(value)
+                        }
+                      }
+                    }
+                    return value
+                  },
+                  set: function reactiveSetter (newVal) {
+                    const value = getter ? getter.call(obj) : val
+                    /* eslint-disable no-self-compare */
+                    if (newVal === value || (newVal !== newVal && value !== value)) {
+                      return
+                    }
+                    /* eslint-enable no-self-compare */
+                    if (process.env.NODE_ENV !== 'production' && customSetter) {
+                      customSetter()
+                    }
+                    // #7981: for accessor properties without setter
+                    if (getter && !setter) return
+                    if (setter) {
+                      setter.call(obj, newVal)
+                    } else {
+                      val = newVal
+                    }
+                    childOb = !shallow && observe(newVal)
+                    dep.notify()
+                  }
+                })
+              ```
+    
+    
