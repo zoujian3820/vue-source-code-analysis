@@ -81,17 +81,25 @@ function flushSchedulerQueue () {
   //    user watchers are created before the render watcher)
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
+
+  // 先给队列 做了一个升序处理
   queue.sort((a, b) => a.id - b.id)
 
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
+
+  // 遍历执行 watch 队列
   for (index = 0; index < queue.length; index++) {
     watcher = queue[index]
+    // 执行 watch 的before函数
+    // before函数中 又执行了 beforeUpdate 生命周期函数
     if (watcher.before) {
       watcher.before()
     }
     id = watcher.id
     has[id] = null
+
+    // 执行watch的run方法，实现更新操作
     watcher.run()
     // in dev build, check and stop circular updates.
     if (process.env.NODE_ENV !== 'production' && has[id] != null) {
@@ -114,10 +122,15 @@ function flushSchedulerQueue () {
   const activatedQueue = activatedChildren.slice()
   const updatedQueue = queue.slice()
 
+  // waiting = flushing = false
+  // 表示 watch 队列已经清空完成
   resetSchedulerState()
 
   // call component updated and activated hooks
+  // 执行所有子组年的 activated  生命周期
   callActivatedHooks(activatedQueue)
+
+  // 其中调用了 updated 生命周期
   callUpdatedHooks(updatedQueue)
 
   // devtool hook
@@ -163,6 +176,9 @@ function callActivatedHooks (queue) {
  */
 export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
+  // 判断 watch 是否已经加入过 watch 队列
+  // 也就是 相同 watch 的多次update只会加入一次队列 减少重复更新
+  // 但不同的 watch 可以加入多个
   if (has[id] == null) {
     has[id] = true
     if (!flushing) {
@@ -177,6 +193,13 @@ export function queueWatcher (watcher: Watcher) {
       queue.splice(i + 1, 0, watcher)
     }
     // queue the flush
+
+    // 如果执行过加入微任务队列的操作
+    // 并且在微任务队列中还未清空
+    // 则不再加入
+    // 因为所有的 watch 更新都在 queue 队列中管理
+    // 而微任务队列执行到当前的 flushSchedulerQueue 函数时
+    // flushSchedulerQueue 函数会去遍历 执行 queue 队列中的所有 watch 更新
     if (!waiting) {
       waiting = true
 

@@ -93,6 +93,8 @@ export function lifecycleMixin (Vue: Class<Component>) {
   }
 
   Vue.prototype.$forceUpdate = function () {
+    // $forceUpdate 表示手动立即触发watch更新
+    // 手动强制更新watch
     const vm: Component = this
     if (vm._watcher) {
       vm._watcher.update()
@@ -100,6 +102,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
   }
 
   Vue.prototype.$destroy = function () {
+    // 页面注销操作
     const vm: Component = this
     if (vm._isBeingDestroyed) {
       return

@@ -50,6 +50,7 @@ export default class Watcher {
     isRenderWatcher?: boolean
   ) {
     this.vm = vm
+    // 是否是渲染watch, 不是则是用户写的业务watch
     if (isRenderWatcher) {
       vm._watcher = this
     }
@@ -77,6 +78,7 @@ export default class Watcher {
       : ''
     // parse expression for getter
     if (typeof expOrFn === 'function') {
+      // 赋值 updateComponent 函数给getter方法
       this.getter = expOrFn
     } else {
       this.getter = parsePath(expOrFn)
@@ -90,6 +92,9 @@ export default class Watcher {
         )
       }
     }
+    // 如果是初始化的渲染watch lazy为fase
+    // 则会先调用一次get方法
+    // get方法中会调用次 updateComponent 完成初始化渲染
     this.value = this.lazy
       ? undefined
       : this.get()
@@ -99,10 +104,15 @@ export default class Watcher {
    * Evaluate the getter, and re-collect dependencies.
    */
   get () {
+    // 用于依赖收集
+    // targetStack.push(target)
+    // Dep.target = target
     pushTarget(this)
     let value
     const vm = this.vm
     try {
+      // 调用getter方法，即调用 updateComponent 方法
+      // 并把this指向Vue实例，并传参过去
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
@@ -113,9 +123,12 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
+      // 是否深度监听
       if (this.deep) {
         traverse(value)
       }
+      // targetStack.pop()
+      // Dep.target = targetStack[targetStack.length - 1]
       popTarget()
       this.cleanupDeps()
     }

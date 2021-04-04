@@ -10,6 +10,8 @@ export let isUsingMicroTask = false
 const callbacks = []
 let pending = false
 
+// 清空微任务队列操作
+// 遍历执行一次
 function flushCallbacks () {
   pending = false
   const copies = callbacks.slice(0)
@@ -39,9 +41,16 @@ let timerFunc
 // completely stops working after triggering a few times... so, if native
 // Promise is available, we will use it:
 /* istanbul ignore next, $flow-disable-line */
+
+// 如果 promise 不是未定义 且是浏览器 原生方法
+// 即当前浏览器环境支持 promise
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
   const p = Promise.resolve()
+  // 赋值 timerFunc 方法
   timerFunc = () => {
+    // 则使用promise的then方法创建一个微任务
+    // 并把需要执行的方法当回调传入
+    // 这样保证了执行的方法会在微任务执行时，才做处理
     p.then(flushCallbacks)
     // In problematic UIWebViews, Promise.then doesn't completely break, but
     // it can get stuck in a weird state where callbacks are pushed into the
@@ -56,17 +65,29 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
   // PhantomJS and iOS 7.x
   MutationObserver.toString() === '[object MutationObserverConstructor]'
 )) {
+  // 如果不支持promise方法， 并且支持 MutationObserver
+  // 则降级使用 MutationObserver 方法
+
   // Use MutationObserver where native Promise is not available,
   // e.g. PhantomJS, iOS7, Android 4.4
   // (#6466 MutationObserver is unreliable in IE11)
   let counter = 1
+
+  // 使用 MutationObserver 并把需要执行的方法当回调传入
   const observer = new MutationObserver(flushCallbacks)
+  // 新建一个文本节点
   const textNode = document.createTextNode(String(counter))
+  // MutationObserver 能监听dom的属性变化
+  // 并做响应处理
+  // 此处监听 characterData 属性
   observer.observe(textNode, {
     characterData: true
   })
+
+  // 赋值 timerFunc 方法
   timerFunc = () => {
     counter = (counter + 1) % 2
+    // 改变data触发 characterData 属性变化
     textNode.data = String(counter)
   }
   isUsingMicroTask = true
@@ -74,11 +95,17 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
   // Fallback to setImmediate.
   // Technically it leverages the (macro) task queue,
   // but it is still a better choice than setTimeout.
+
+  // 如果以两种都不支持,并且是微软的IE
+  // 则使用IE独有的 setImmediate 方法
   timerFunc = () => {
     setImmediate(flushCallbacks)
   }
 } else {
   // Fallback to setTimeout.
+
+  // 如果以上三种都不支持，则使用setTimeout
+  // 使用宏任务代替处理
   timerFunc = () => {
     setTimeout(flushCallbacks, 0)
   }
@@ -86,7 +113,9 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
 
 export function nextTick (cb?: Function, ctx?: Object) {
   let _resolve
+  // 加入到微任务执行队列中
   callbacks.push(() => {
+    // cb 存在则执行
     if (cb) {
       try {
         cb.call(ctx)
@@ -97,11 +126,17 @@ export function nextTick (cb?: Function, ctx?: Object) {
       _resolve(ctx)
     }
   })
+  // 如果此时不是在执行清空操作
   if (!pending) {
     pending = true
+    // 则立即执行清空队列操作
+    // 微任务会在当前宏任务结束前统一清空处理
     timerFunc()
   }
   // $flow-disable-line
+  // 兼容处理，如果上面的cb函数不存在
+  // 并且支持promise 则创建一个promise
+  // 并赋值_resolve = 当前 promise 的 resolve
   if (!cb && typeof Promise !== 'undefined') {
     return new Promise(resolve => {
       _resolve = resolve

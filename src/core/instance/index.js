@@ -3,7 +3,7 @@ import { stateMixin } from './state'
 import { renderMixin } from './render'
 import { eventsMixin } from './events'
 import { lifecycleMixin } from './lifecycle'
-import { warn } from '../util/index'
+import {nextTick, warn} from '../util/index'
 
 // 构造函数 new Vue(options)
 function Vue (options) {
@@ -29,9 +29,19 @@ function Vue (options) {
 // _init方法就在其中
 initMixin(Vue)
 // 我们熟悉的其他实例属性和方法由下面这些混入
+
+// 初始化 $data $props $set $delete  $watch 等实例属性及方法
 stateMixin(Vue)
+// 初始化 $on $once $off  $emit 等实例方法
 eventsMixin(Vue)
+// 初始化 _update(updateComponent会调用_update)，new Watcher 会把updateComponent当参数传入，并调用
+// $forceUpdate（手动强制更新watch）
+// $destroy （页面注销 卸载操作） 等实例方法
 lifecycleMixin(Vue)
+// 初始化
+// $nextTick 调用 nextTick 方法
+// _render 调用当前实例中的render函数 生成Vnode 并当参数传递给 _update函数
+// 等实例方法
 renderMixin(Vue)
 
 export default Vue
