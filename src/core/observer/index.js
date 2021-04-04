@@ -40,6 +40,11 @@ export class Observer {
   vmCount: number; // number of vms that have this object as root $data
 
   constructor (value: any) {
+    /*
+    * Observer作用
+    * 1. 区分对象还是array
+    * 2. 创建一个dep实例
+    * */
     this.value = value
     this.dep = new Dep()
     this.vmCount = 0
@@ -111,8 +116,12 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
   if (!isObject(value) || value instanceof VNode) {
     return
   }
+
+  // 获取ob实例
   let ob: Observer | void
+  // 如果有 __ob__属性，则表示此数据，已经是响应式了
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+    // 则直接使用
     ob = value.__ob__
   } else if (
     shouldObserve &&
@@ -121,8 +130,10 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     Object.isExtensible(value) &&
     !value._isVue
   ) {
+    // 初始创建一次
     ob = new Observer(value)
   }
+  // asRootData 是否做为根数据
   if (asRootData && ob) {
     ob.vmCount++
   }
@@ -160,8 +171,13 @@ export function defineReactive (
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
       if (Dep.target) {
+        // 依赖收集 Vue2中一个组件一个Watcher
+        // dep n:1 watcher
+        // 如果用户手动创建 watcher 比如 watch选 this.$watch(key, cb)
+        // dep 1:n watcher
         dep.depend()
         if (childOb) {
+          // 如果有子ob，子ob也要做依赖收集
           childOb.dep.depend()
           if (Array.isArray(value)) {
             dependArray(value)

@@ -10,11 +10,11 @@ export let isUsingMicroTask = false
 const callbacks = []
 let pending = false
 
-// 清空微任务队列操作
-// 遍历执行一次
+// 遍历执行  并清空当前微任务 需执行的任务队列操作
 function flushCallbacks () {
   pending = false
   const copies = callbacks.slice(0)
+  // length赋值0 === 清空 callbacks 数组
   callbacks.length = 0
   for (let i = 0; i < copies.length; i++) {
     copies[i]()
@@ -112,11 +112,46 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
 }
 
 export function nextTick (cb?: Function, ctx?: Object) {
+
+  /*
+
+  function timerFunc(){
+     var callbacks = [
+       ()=>{
+         // 执行组件的watcher 队列处理函数 flushSchedulerQueue
+       },
+       ()=>{},
+       ()=>{}， ...
+     ]
+
+   function flushCallbacks () {
+      pending = false
+      const copies = callbacks.slice(0)
+      callbacks.length = 0
+      for (let i = 0; i < copies.length; i++) {
+        copies[i]()
+      }
+    }
+    // 创建了微任务，并把flushCallbacks 当回调函数
+    Promise.resolve().then(flushCallbacks)
+  }
+
+  var 微任务队列 = []
+  var 微任务1 = timerFunc() // 创建一个微任务
+
+  浏览器自动执行
+    微任务队列.push(微任务1)
+
+  * */
+
+
   let _resolve
-  // 加入到微任务执行队列中
+  // callbacks 存放当前微任务需执行的 异步任务队列数组
+  // 加入到当前微任务 需执行的任务队列中
   callbacks.push(() => {
-    // cb 存在则执行
+    // cb (flushSchedulerQueue) 存在则执行
     if (cb) {
+      // 处理可能发生的错误
       try {
         cb.call(ctx)
       } catch (e) {
@@ -126,11 +161,11 @@ export function nextTick (cb?: Function, ctx?: Object) {
       _resolve(ctx)
     }
   })
-  // 如果此时不是在执行清空操作
+  // 如果此时不是在执行微任务清空操作的状态
   if (!pending) {
     pending = true
-    // 则立即执行清空队列操作
-    // 微任务会在当前宏任务结束前统一清空处理
+    // 则立即 创建一个微任务，执行的内容为 flushCallbacks  清空callbacks队列
+    // 微任务会加入到浏览器微任务的队列中 微任务会在当前宏任务结束前统一清空处理
     timerFunc()
   }
   // $flow-disable-line

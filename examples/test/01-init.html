@@ -20,6 +20,7 @@
   <body>
     <div id="app">
       <button @click="onclick">Event事件onclick</button>
+      {{obj.gg}}
     </div>
     <script>
       // Vue.performance = true;
@@ -30,13 +31,14 @@
         el: "#app",
         data() {
           return {
-            obj: {},
+            obj: {gg: 3},
           };
         },
         methods: {
           onclick(e) {
             // console.log(e, this, this.constructor._parentListeners)
-            this.$set(this.obj, "abc", "hahah");
+            // this.$set(this.obj, "abc", "hahah");
+            this.obj.gg = 222
           },
         },
       });

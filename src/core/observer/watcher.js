@@ -140,10 +140,13 @@ export default class Watcher {
    */
   addDep (dep: Dep) {
     const id = dep.id
+    // 相互添加引用
     if (!this.newDepIds.has(id)) {
+      // watcher添加到dep
       this.newDepIds.add(id)
       this.newDeps.push(dep)
       if (!this.depIds.has(id)) {
+        // dep 添加watcher
         dep.addSub(this)
       }
     }
@@ -176,9 +179,31 @@ export default class Watcher {
    */
   update () {
     /* istanbul ignore else */
+
+    // 属性set更新时会被触发user-watcher所定义的回调函数（将新旧值传入），支持异步操作
+    // this.$watch()
+    /*
+    {
+      watch: {
+        count: {
+          deep: true,
+          handler(newV, oldV){
+
+          }
+        }
+      }
+    }
+    */
+    // 配置项有以下三种
+      // immediate  为true时会将实例作为参数传入立即执行回调函数
+      // deep 对对象、数组进行深度的依赖收集
+      // sync 不把更新watcher放到nextTick队列 而是立即执行更新
+
+    // 懒执行 比如 computed
     if (this.lazy) {
       this.dirty = true
     } else if (this.sync) {
+      // 同步更新
       this.run()
     } else {
       // 加入 watch 队列
@@ -193,6 +218,7 @@ export default class Watcher {
    */
   run () {
     if (this.active) {
+      // 调用了get方法 即调用了  updateComponent方法
       const value = this.get()
       if (
         value !== this.value ||

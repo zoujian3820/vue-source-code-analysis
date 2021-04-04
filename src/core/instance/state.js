@@ -57,6 +57,7 @@ export function initState (vm: Component) {
   }
   if (opts.computed) initComputed(vm, opts.computed)
   if (opts.watch && opts.watch !== nativeWatch) {
+    // 组件内部存在用户watch 则初始化 调用 vm.$watch
     initWatch(vm, opts.watch)
   }
 }
@@ -123,6 +124,10 @@ function initData (vm: Component) {
     )
   }
   // proxy data on instance
+  // 校验，避免命名冲突，前面有使用，后面的就不能命名
+  // 顺序： props methosds data computed watch
+  // 如 props 中有一个name属性，则后面都不能使用name命名
+
   const keys = Object.keys(data)
   const props = vm.$options.props
   const methods = vm.$options.methods
@@ -148,6 +153,7 @@ function initData (vm: Component) {
     }
   }
   // observe data
+  // 递归的响应式处理
   observe(data, true /* asRootData */)
 }
 
