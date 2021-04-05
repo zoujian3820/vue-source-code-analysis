@@ -62,8 +62,8 @@ function add (
     handler = original._wrapper = function (e) {
       if (
         // no bubbling, should always fire.
-        // this is just a safety net in case event.timeStamp is unreliable in
-        // certain weird environments...
+      // this is just a safety net in case event.timeStamp is unreliable in
+      // certain weird environments...
         e.target === e.currentTarget ||
         // event is fired after handler attachment
         e.timeStamp >= attachedTimestamp ||
@@ -110,6 +110,10 @@ function updateDOMListeners (oldVnode: VNodeWithData, vnode: VNodeWithData) {
   const oldOn = oldVnode.data.on || {}
   target = vnode.elm
   normalizeEvents(on)
+  // updateListeners 被抽象出来给 原生事件处理 和 组件事件处理 共同使用
+  // 且add是当参数传进来的，所以 add 可能是原生的绑定操作函数
+  // 也可能是自定义组件的绑定操作函数
+  // 原生 addEventListener  组件 $on
   updateListeners(on, oldOn, add, remove, createOnceHandler, vnode.context)
   target = undefined
 }

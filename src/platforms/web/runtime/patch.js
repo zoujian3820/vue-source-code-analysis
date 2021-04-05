@@ -2,6 +2,10 @@
 
 import * as nodeOps from 'web/runtime/node-ops'
 import { createPatchFunction } from 'core/vdom/patch'
+
+// 原生dom相关的操作在这里面
+// 比如events 原生事件绑定就在其中的 events文件
+// 自定义的事件在Vue _init方法中 -> initEvents 初始化
 import baseModules from 'core/vdom/modules/index'
 import platformModules from 'web/runtime/modules/index'
 

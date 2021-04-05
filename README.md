@@ -342,6 +342,215 @@
               }
             })
             ```
-              
+            
     
     
+
+- 自定义组件事件处理
+
+  - 入口 Vue.prototype._init 函数 -> initEvents() ->  updateComponentListeners()
+
+  - 事件处理都在这个文件中 src\core\instance\events.js  包含以下这些方法
+
+    - initEvents 与 updateComponentListeners
+
+      > 每个自定义组件的自定义事件，其组件内部肯定绑定了一个原生事件
+
+      ```javascript
+      export function initEvents (vm: Component) {
+        vm._events = Object.create(null)
+        vm._hasHookEvent = false
+        // init parent attached events
+        // <Child @myclick="onmyclick" />
+        // this.$on('myclick', onmyclick)
+        // this.$emit('myclick')
+        // 事件的派发和监听都是子组件
+      
+        // listeners: 从父组件那里拿过来的事件回调函数（onmyclick）
+        // 自定义组件中真正做事件 监听的是事件派发者自己，也就是子组件
+        const listeners = vm.$options._parentListeners
+        if (listeners) {
+          updateComponentListeners(vm, listeners)
+        }
+      }
+      ```
+
+      
+
+    - $on  $once  $emit  $off
+
+      - 事件处理采用订阅发布原理
+
+      - 一个事件可绑多个回调
+
+        ```javascript
+        this.$on('myclick', cb1)    
+        this.$on('myclick', cb2)
+        ```
+
+      - 一个回调也可同时绑定多个事件
+
+        ```javascript
+        this.$on(['evt1', 'evt2', ...], cb)
+        ```
+
+      - 所以$emit去触发时，也带有上面这些特性
+
+        ```javascript
+          Vue.prototype.$emit = function (event: string): Component {
+            const vm: Component = this
+            // 获取到当前event这个事件名下的所有回调
+            let cbs = vm._events[event]
+            if (cbs) {
+              cbs = cbs.length > 1 ? toArray(cbs) : cbs
+              const args = toArray(arguments, 1)
+              const info = `event handler for "${event}"`
+              for (let i = 0, l = cbs.length; i < l; i++) {
+                // 遍历执行 当前事件的所有回调函数，全都执行
+                // 也对应 上面$on 实现订阅与发布
+                // 用下面这个函数去执行回调，是怕有异常，其内部做了
+                // try catch 异常处理
+                invokeWithErrorHandling(cbs[i], vm, args, vm, info)
+              }
+            }
+            return vm
+          }
+        ```
+
+      - $off 处理
+
+        - 无参则清除当前组件的所有事件
+        - 也可传入多个事件名
+        - 并可指定清除的回调函数，如果用户没指定fn参数，相关所有回调都清除
+
+        ```javascript
+        Vue.prototype.$off = function (event?: string | Array<string>, fn?: Function): Component {
+            const vm: Component = this
+            // all
+            // 无参数：清除所有的事件监听
+            if (!arguments.length) {
+              vm._events = Object.create(null)
+              return vm
+            }
+            // array of events
+            // 传入事件名称数组
+            if (Array.isArray(event)) {
+              for (let i = 0, l = event.length; i < l; i++) {
+                vm.$off(event[i], fn)
+              }
+              return vm
+            }
+            // specific event
+            // 解除特定事件
+            const cbs = vm._events[event]
+            if (!cbs) {
+              return vm
+            }
+            // 如果用户没指定fn参数，相关所有回调都清除
+            if (!fn) {
+              vm._events[event] = null
+              return vm
+            }
+            // specific handler
+            // 如果用户指定fn参数，则仅删除该回调
+            let cb
+            let i = cbs.length
+            while (i--) {
+              cb = cbs[i]
+              if (cb === fn || cb.fn === fn) {
+                cbs.splice(i, 1)
+                break
+              }
+            }
+            return vm
+          }
+        ```
+
+        
+
+- 原生事件处理
+
+  - 入口 src\platforms\web\runtime\index.js 中 添加了 patch
+
+    ```javascript
+    Vue.prototype.__patch__ = inBrowser ? patch : noop
+    ```
+
+  - patch函数的引入文件 src\platforms\web\runtime\patch.js
+
+  - 其中引入了 baseModules 模块 core/vdom/modules/index
+
+    ```javascript
+    import * as nodeOps from 'web/runtime/node-ops'
+    import { createPatchFunction } from 'core/vdom/patch'
+    
+    // 原生dom相关的操作在这里面
+    // 比如events 原生事件绑定就在其中的 events文件
+    // 自定义的事件在Vue _init方法中 -> initEvents 初始化
+    import baseModules from 'core/vdom/modules/index'
+    import platformModules from 'web/runtime/modules/index'
+    
+    // the directive module should be applied last, after all
+    // built-in modules have been applied.
+    const modules = platformModules.concat(baseModules)
+    
+    // 执行 createPatchFunction 函数
+    // 反回内部的闭包函数 patch
+    // return function patch (oldVnode, vnode, hydrating, removeOnly) {
+    export const patch: Function = createPatchFunction({ nodeOps, modules })
+    ```
+
+  - core/vdom/modules/index中又引入了 events， 原生操作就在这里
+
+  - src\platforms\web\runtime\modules\events.js
+
+    ```javascript
+    function updateDOMListeners (oldVnode: VNodeWithData, vnode: VNodeWithData) {
+      if (isUndef(oldVnode.data.on) && isUndef(vnode.data.on)) {
+        return
+      }
+      const on = vnode.data.on || {}
+      const oldOn = oldVnode.data.on || {}
+      target = vnode.elm
+      normalizeEvents(on)
+      // updateListeners 被抽象出来给 原生事件处理 和 组件事件处理 共同使用
+      // 且add是当参数传进来的，所以 add 可能是原生的绑定操作函数
+      // 也可能是自定义组件的绑定操作函数
+      // 原生 addEventListener  组件 $on
+      updateListeners(on, oldOn, add, remove, createOnceHandler, vnode.context)
+      target = undefined
+    }
+    
+    function add (
+      name: string,
+      handler: Function,
+      capture: boolean,
+      passive: boolean
+    ) {
+      target.addEventListener(
+        name,
+        handler,
+        supportsPassive
+          ? { capture, passive }
+          : capture
+      )
+    }
+    
+    function remove (
+      name: string,
+      handler: Function,
+      capture: boolean,
+      _target?: HTMLElement
+    ) {
+      (_target || target).removeEventListener(
+        name,
+        handler._wrapper || handler,
+        capture
+      )
+    }
+    ```
+
+    
+
+    
+

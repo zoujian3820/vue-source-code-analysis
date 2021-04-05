@@ -80,6 +80,14 @@ export function updateListeners (
       if (isTrue(event.once)) {
         cur = on[name] = createOnceHandler(event.name, cur, event.capture)
       }
+      // 使用$on绑定事件
+      // 由于 updateListeners 被抽象出来给
+      // 原生事件处理 和 组件事件处理 共同使用
+      // 且add是当参数传进来的，
+      // 所以 add 可能是原生的绑定操作函数 也可能是自定义组件的绑定操作函数
+      // 原生 addEventListener  组件 $on
+      // 每个自定义组件的自定义事件，其组件内部肯定绑定了一个原生事件
+      // 作为触发机制
       add(event.name, cur, event.capture, event.passive, event.params)
     } else if (cur !== old) {
       old.fns = cur
