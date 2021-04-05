@@ -151,6 +151,7 @@ export function createComponent (
   resolveConstructorOptions(Ctor)
 
   // transform component v-model data into props & events
+  // data中存在model选项时，做的相应操作
   if (isDef(data.model)) {
     transformModel(Ctor.options, data)
   }
@@ -165,6 +166,8 @@ export function createComponent (
 
   // extract listeners, since these needs to be treated as
   // child component listeners instead of DOM listeners
+
+  // 事件监听的处理
   const listeners = data.on
   // replace with listeners with .native modifier
   // so it gets processed during parent component patch.
@@ -183,10 +186,12 @@ export function createComponent (
   }
 
   // install component management hooks onto the placeholder node
+  // 安装自定义组件管理钩子， 比如初始化钩子init等
   installComponentHooks(data)
 
   // return a placeholder vnode
   const name = Ctor.options.name || tag
+  // 定义组件名称
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
     data, undefined, undefined, undefined, context,
@@ -250,21 +255,33 @@ function mergeHook (f1: any, f2: any): Function {
 // transform component v-model info (value and callback) into
 // prop and event handler respectively.
 function transformModel (options, data: any) {
+  // 如果用户有定义自定义的属性名称或者事件名称
+  // 则使用它，否则使用默认的value和input
   const prop = (options.model && options.model.prop) || 'value'
   const event = (options.model && options.model.event) || 'input'
   ;(data.attrs || (data.attrs = {}))[prop] = data.model.value
+  // v-model="foo" @input="onInput"
+  // 如查用户使用了v-model 又监听了input事件
   const on = data.on || (data.on = {})
+  // 则先获取到用户监听的input事件回调
   const existing = on[event]
+  // v-model 处理的回调
   const callback = data.model.callback
+  // 如果有户监听的input事件存在
   if (isDef(existing)) {
     if (
       Array.isArray(existing)
         ? existing.indexOf(callback) === -1
         : existing !== callback
     ) {
+      // 把v-model 处理的回调 和 用户监听的input事件 回调
+      // 合并成一个数组统一 当成input 事件的回调处理
       on[event] = [callback].concat(existing)
     }
   } else {
+    // 没用户监听的input事件存在
+    // 则只处理 v-model 的回调
     on[event] = callback
   }
+  // 从上可看出  事件处理统一放到了 data.on 上管理
 }

@@ -384,18 +384,46 @@
       - 一个事件可绑多个回调
 
         ```javascript
-        this.$on('myclick', cb1)    
-        this.$on('myclick', cb2)
+        // this.$on('myclick', cb1)    
+        // this.$on('myclick', cb2)
+        
+    const hookRE = /^hook:/
+          Vue.prototype.$on = function (event: string | Array<string>, fn: Function): Component {
+        const vm: Component = this
+            // $on支持同时监听 多个事件以数组形传参
+            // 也就是一个回调，可以绑定多个事件
+            // this.$on(['evt1', 'evt2'...], cb)
+        if (Array.isArray(event)) {
+              for (let i = 0, l = event.length; i < l; i++) {
+            vm.$on(event[i], fn)
+              }
+            } else {
+              // 把事件名称当key 和回调函数当数组value 存入 _events 对象中
+              // 也就意味着 一个事件，也可以绑定多个回调函数
+              // 典型的订阅与发布的模式
+              (vm._events[event] || (vm._events[event] = [])).push(fn)
+        
+              // 检测当前组件绑定的事件是否是 hookEvent
+              // 如 @hook:updated="handleHookUpdated"
+              // const hookRE = /^hook:/
+              if (hookRE.test(event)) {
+                // 是的话，标记为true 用来给生命周期钩子触发时，
+                // 能触发当前绑定的 hookEvent
+                vm._hasHookEvent = true
+              }
+            }
+            return vm
+          }
         ```
-
-      - 一个回调也可同时绑定多个事件
-
-        ```javascript
+      
+  - 一个回调也可同时绑定多个事件
+      
+    ```javascript
         this.$on(['evt1', 'evt2', ...], cb)
         ```
-
-      - 所以$emit去触发时，也带有上面这些特性
-
+      
+  - 所以$emit去触发时，也带有上面这些特性
+      
         ```javascript
           Vue.prototype.$emit = function (event: string): Component {
             const vm: Component = this
@@ -416,13 +444,13 @@
             return vm
           }
         ```
-
+      
       - $off 处理
-
+      
         - 无参则清除当前组件的所有事件
         - 也可传入多个事件名
         - 并可指定清除的回调函数，如果用户没指定fn参数，相关所有回调都清除
-
+      
         ```javascript
         Vue.prototype.$off = function (event?: string | Array<string>, fn?: Function): Component {
             const vm: Component = this
@@ -437,7 +465,7 @@
             if (Array.isArray(event)) {
               for (let i = 0, l = event.length; i < l; i++) {
                 vm.$off(event[i], fn)
-              }
+          }
               return vm
             }
             // specific event
@@ -465,7 +493,7 @@
             return vm
           }
         ```
-
+      
         
 
 - 原生事件处理
@@ -550,7 +578,53 @@
     }
     ```
 
-    
+  
 
-    
+- hookEvent  Vue的全命周期钩子事件
+
+    > 简而言之就是生命周期钩子 也可当事件来监听
+
+    ```html
+    <Table @hook:updated=handleTableUpdated></Table>
+    ```
+
+    > 场景：有一个第三方的复杂表格组件，在进行数据更新时渲染时间要1秒，
+    >
+    > 由于时间过长，为了更好的用户体验，我希望表格在更新时能显示一个loading动画。
+    >
+    > 修改源码这个方案肯定很不优雅。
+    >
+    > **那么  hookEvent 这时就派上用场了**
+
+    - callHook  src\core\instance\lifecycle.js
+
+      > callHook两个用途：触发原本的生命周期钩子函数  和  触发 hookEvent 事件
+
+        ```javascript
+      // 如 callHook(vm, 'deactivated')
+      export function callHook (vm: Component, hook: string) {
+        // #7573 disable dep collection when invoking lifecycle hooks
+        pushTarget()
+        const handlers = vm.$options[hook]
+        const info = `${hook} hook`
+        if (handlers) {
+          for (let i = 0, j = handlers.length; i < j; i++) {
+            invokeWithErrorHandling(handlers[i], vm, null, vm, info)
+          }
+        }
+        // 当前组件标记有绑定hookEvent事件
+        if (vm._hasHookEvent) {
+          // 当内部生命周期函数执行时，同时也执行了触发 hookEvent 的操作
+          // 调用hookEvent事件
+          vm.$emit('hook:' + hook)
+        }
+        popTarget()
+      }
+        ```
+
+      
+
+      
+
+      
 

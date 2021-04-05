@@ -81,7 +81,13 @@ export function eventsMixin (Vue: Class<Component>) {
       (vm._events[event] || (vm._events[event] = [])).push(fn)
       // optimize hook:event cost by using a boolean flag marked at registration
       // instead of a hash lookup
+
+      // 检测当前组件绑定的事件是否是 hookEvent
+      // 如 @hook:updated="handleHookUpdated"
+      // const hookRE = /^hook:/
       if (hookRE.test(event)) {
+        // 是的话，标记为true 用来给生命周期钩子触发时，
+        // 能触发当前绑定的 hookEvent
         vm._hasHookEvent = true
       }
     }
