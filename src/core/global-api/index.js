@@ -97,5 +97,6 @@ export function initGlobalAPI(Vue: GlobalAPI) {
   */
 
   initExtend(Vue);
+  // 初始化组件定义方法
   initAssetRegisters(Vue);
 }

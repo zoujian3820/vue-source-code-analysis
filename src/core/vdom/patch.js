@@ -97,6 +97,11 @@ export function createPatchFunction (backend) {
    modules: 两数组合并 concat
    [attrs, klass, events, domProps, style, transition]
    [ref, directives]
+   如 attrs: 内部 包含两个方法，其他对象内部都包含有方法
+    export default {
+      create: updateAttrs,
+      update: updateAttrs
+    }
   * */
   const { modules, nodeOps } = backend
 
@@ -109,6 +114,12 @@ export function createPatchFunction (backend) {
       }
     }
   }
+  /*
+  cbs: {
+    create: [updateAttrs, updateClass...],
+    update: [updateAttrs, updateClass...]
+  }
+  * */
 
   function emptyNodeAt (elm) {
     return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
@@ -169,10 +180,13 @@ export function createPatchFunction (backend) {
     }
 
     vnode.isRootInsert = !nested // for transition enter check
+
+    // 如果是自定义组件就执行createComponent(), 就不往下走了
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
       return
     }
 
+    // 保留标签
     const data = vnode.data
     const children = vnode.children
     const tag = vnode.tag
@@ -191,6 +205,7 @@ export function createPatchFunction (backend) {
         }
       }
 
+      // 创建dom元素
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
         : nodeOps.createElement(tag, vnode)
@@ -216,6 +231,7 @@ export function createPatchFunction (backend) {
           insert(parentElm, vnode.elm, refElm)
         }
       } else {
+        // 向下递归
         createChildren(vnode, children, insertedVnodeQueue)
         if (isDef(data)) {
           invokeCreateHooks(vnode, insertedVnodeQueue)
@@ -239,6 +255,7 @@ export function createPatchFunction (backend) {
     let i = vnode.data
     if (isDef(i)) {
       const isReactivated = isDef(vnode.componentInstance) && i.keepAlive
+      // 前面安装的钩子就在hook属性里面
       if (isDef(i = i.hook) && isDef(i = i.init)) {
         i(vnode, false /* hydrating */)
       }
@@ -247,7 +264,9 @@ export function createPatchFunction (backend) {
       // component also has set the placeholder vnode's elm.
       // in that case we can just return the element and be done.
       if (isDef(vnode.componentInstance)) {
+        // 前面操作结束，获得了组件实例
         initComponent(vnode, insertedVnodeQueue)
+        // 追加到父元素上
         insert(parentElm, vnode.elm, refElm)
         if (isTrue(isReactivated)) {
           reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm)
@@ -264,6 +283,7 @@ export function createPatchFunction (backend) {
     }
     vnode.elm = vnode.componentInstance.$el
     if (isPatchable(vnode)) {
+      // 组件属性操作
       invokeCreateHooks(vnode, insertedVnodeQueue)
       setScope(vnode)
     } else {
@@ -609,6 +629,12 @@ export function createPatchFunction (backend) {
 
     // 2. 属性更新, 一次性全部更新，性能不是特别好
     // Vue3中有所优化，做到了定点更新，哪变化更新哪
+    /*
+    cbs: {
+      create: [updateAttrs, updateClass...],
+      update: [updateAttrs, updateClass...]
+    }
+    * */
     if (isDef(data) && isPatchable(vnode)) {
       for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
       if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
@@ -861,6 +887,7 @@ export function createPatchFunction (backend) {
 
         // create new node
         // 创建元素节点
+        // 将完整的vdom树转换为真实dom
         createElm(
           vnode,
           insertedVnodeQueue,

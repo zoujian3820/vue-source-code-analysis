@@ -38,6 +38,7 @@ function updateAttrs (oldVnode: VNodeWithData, vnode: VNodeWithData) {
   for (key in attrs) {
     cur = attrs[key]
     old = oldAttrs[key]
+    // 遍历新Vnode中的属性，如果和旧的不相等，则修改成新Vnode的属性
     if (old !== cur) {
       setAttr(elm, key, cur, vnode.data.pre)
     }
@@ -49,6 +50,7 @@ function updateAttrs (oldVnode: VNodeWithData, vnode: VNodeWithData) {
     setAttr(elm, 'value', attrs.value)
   }
   for (key in oldAttrs) {
+    // 遍历旧Vnode中的属性，如果和新的不相等，则删除属性
     if (isUndef(attrs[key])) {
       if (isXlink(key)) {
         elm.removeAttributeNS(xlinkNS, getXlinkProp(key))

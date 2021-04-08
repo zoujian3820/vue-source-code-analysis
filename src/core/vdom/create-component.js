@@ -41,13 +41,16 @@ const componentVNodeHooks = {
       vnode.data.keepAlive
     ) {
       // kept-alive components, treat as a patch
+      // 当前组件被包裹在keep-alive中时的处理
       const mountedNode: any = vnode // work around flow
       componentVNodeHooks.prepatch(mountedNode, mountedNode)
     } else {
+      //组件的实例化
       const child = vnode.componentInstance = createComponentInstanceForVnode(
         vnode,
         activeInstance
       )
+      // 执行挂载
       child.$mount(hydrating ? vnode.elm : undefined, hydrating)
     }
   },
@@ -144,6 +147,7 @@ export function createComponent (
     }
   }
 
+  // 处理自定义组件各个选项
   data = data || {}
 
   // resolve constructor options in case global mixins are applied after
@@ -151,7 +155,7 @@ export function createComponent (
   resolveConstructorOptions(Ctor)
 
   // transform component v-model data into props & events
-  // data中存在model选项时，做的相应操作
+  // data中存在v-model选项时，做的相应操作
   if (isDef(data.model)) {
     transformModel(Ctor.options, data)
   }
@@ -190,9 +194,11 @@ export function createComponent (
   installComponentHooks(data)
 
   // return a placeholder vnode
+  // 返回自定义组件vnode
   const name = Ctor.options.name || tag
   // 定义组件名称
   const vnode = new VNode(
+    // vue-component-1-comp
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
     data, undefined, undefined, undefined, context,
     { Ctor, propsData, listeners, tag, children },
@@ -232,6 +238,7 @@ export function createComponentInstanceForVnode (
 
 function installComponentHooks (data: VNodeData) {
   const hooks = data.hook || (data.hook = {})
+  // 合并同户和默认管理钩子
   for (let i = 0; i < hooksToMerge.length; i++) {
     const key = hooksToMerge[i]
     const existing = hooks[key]

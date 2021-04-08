@@ -21,14 +21,24 @@
     <div id="app">
       <button @click="onclick">Event事件onclick</button>
       {{obj.gg}}
+      <comp></comp>
     </div>
     <script>
       // Vue.performance = true;
+      Vue.component('comp', {
+        template: '<div>i am comp !!!!</div>'
+      })
+
       Vue.use({install(){
         console.log(arguments)
         }})
       new Vue({
         el: "#app",
+        components: {
+          ass: {
+            template: '<div>我是局部组件</div>'
+          }
+        },
         data() {
           return {
             obj: {gg: 3},
