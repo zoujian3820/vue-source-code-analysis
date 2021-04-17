@@ -24,12 +24,13 @@ export function initUse (Vue: GlobalAPI) {
 
     /**
      * Vue.use({
-     *   install(vm, ...){
-     *    console.log(vm === Vue实例)
+     *   install(Vue, ...){
+     *    console.log(Vue === Vue构造函数)
      *   }
      *  })
      */
 
+    // 把Vue当成第一个参数传入，vue3中传入的是实例对象app
     args.unshift(this)
     if (typeof plugin.install === 'function') {
       plugin.install.apply(plugin, args)
