@@ -190,6 +190,14 @@ export function queueWatcher (watcher: Watcher) {
       while (i > index && queue[i].id > watcher.id) {
         i--
       }
+      // 此处理为 当flushSchedulerQueue方在执行过程中
+      // 有一个watcher 的更新被触发了 然后被 加了进来
+      // 所以有了以上的遍历
+      // 首先  flushSchedulerQueue 中会给 queue 做一次 升序排序  [1，2，3...]
+      // 获取 当前 queue 遍历执行到的下标位置index并比较当前 i，如果 i <= index 时中断，则表示 遍历到了当前在执行的watcher
+      // 并判断 当前i下标的watcher.id <= 时 也中断  表示 当前跑到了的 watcher 和 加进来的id 相同了
+      // 以上二者 中断后，执行以下  把当前加进来的 watcher 加到 当前执行的下标后面 i+1
+      // 也就是 queue 遍历下个时，就是当前加进来的, 也就是会立即执行
       queue.splice(i + 1, 0, watcher)
     }
     // queue the flush

@@ -35,7 +35,7 @@ const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
 function sameVnode (a, b) {
   return (
     // key 只是必要条件之一
-    // 第一比较Vnode 的key 是否相同
+    // 第一比较Vnode 的key 是否相同 如果不设key 则为 undefined 而 undefined === undefined
     // 所以 v-for 中 key 非常重要
     a.key === b.key && (
       (

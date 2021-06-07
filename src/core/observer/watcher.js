@@ -196,10 +196,11 @@ export default class Watcher {
    * Subscriber interface.
    * Will be called when a dependency changes.
    */
+  // 数据变更时，dep中收集了依赖watcher 会遍历执行组件watcher的update方法
   update () {
     /* istanbul ignore else */
 
-    // 属性set更新时会被触发user-watcher所定义的回调函数（将新旧值传入），支持异步操作
+    // 属性更新时会触发user-watcher所定义的回调函数（将新旧值传入），支持异步操作
     // this.$watch()
     /*
     {
@@ -222,6 +223,7 @@ export default class Watcher {
     if (this.lazy) {
       this.dirty = true
     } else if (this.sync) {
+      // $watch 有个sync属性
       // 同步更新
       this.run()
     } else {
