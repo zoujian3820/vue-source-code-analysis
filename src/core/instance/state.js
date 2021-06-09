@@ -55,7 +55,9 @@ export function initState (vm: Component) {
   } else {
     observe(vm._data = {}, true /* asRootData */)
   }
+  // 初始化 computed
   if (opts.computed) initComputed(vm, opts.computed)
+  // 初始化watch
   if (opts.watch && opts.watch !== nativeWatch) {
     // 组件内部存在用户watch 则初始化 调用 vm.$watch
     initWatch(vm, opts.watch)
@@ -170,17 +172,38 @@ export function getData (data: Function, vm: Component): any {
   }
 }
 
+// 配置项 标明 lazy为true 传给watcher做初始化用
 const computedWatcherOptions = { lazy: true }
 
 function initComputed (vm: Component, computed: Object) {
   // $flow-disable-line
+  // watchers： 创建的 _computedWatchers 对象放在实例this上  并用key 来存对应的 watcher
   const watchers = vm._computedWatchers = Object.create(null)
   // computed properties are just getters during SSR
   const isSSR = isServerRendering()
 
+/*  {
+    computed: {
+      count() {
+        return this.list.length
+      },
+      lens: {
+        get() {
+          return this.abs.length
+        },
+        set(v) {
+          this.abs.push(v)
+        }
+      }
+    }
+  }*/
+  // 遍历 computed 拿到 对应的配置
   for (const key in computed) {
+    // 获取 key 对应的函数方法，或存取器配置
     const userDef = computed[key]
+    // 获取 get 取值方法
     const getter = typeof userDef === 'function' ? userDef : userDef.get
+
     if (process.env.NODE_ENV !== 'production' && getter == null) {
       warn(
         `Getter is missing for computed property "${key}".`,
@@ -188,20 +211,25 @@ function initComputed (vm: Component, computed: Object) {
       )
     }
 
+    // 不是服务端渲染
     if (!isSSR) {
       // create internal watcher for the computed property.
+      // 一个key对应一个 Watcher
       watchers[key] = new Watcher(
-        vm,
-        getter || noop,
+        vm, // Vue 实例this
+        getter || noop, // computed get 方法
         noop,
-        computedWatcherOptions
+        computedWatcherOptions // 配置 { lazy: true }
       )
     }
 
     // component-defined computed properties are already defined on the
     // component prototype. We only need to define computed properties defined
     // at instantiation here.
+    // 确定 当前的computed key 是否没被其他地方设置过 如data methods props 等 可能重名
     if (!(key in vm)) {
+      // 给Vue实例this 定义 definedProperty 存取器
+      // 并以 computed 的key  作key 使用 这样就可直接 this调用  this.xxxx
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
       if (key in vm.$data) {
@@ -214,22 +242,34 @@ function initComputed (vm: Component, computed: Object) {
 }
 
 export function defineComputed (
-  target: any,
-  key: string,
-  userDef: Object | Function
+  target: any, // Vue 实例this
+  key: string, // computed 的 key
+  userDef: Object | Function // computed  key 对应的函数方法，或存取器配置
 ) {
+  // 是否非服务端渲染
   const shouldCache = !isServerRendering()
+  /*    const sharedPropertyDefinition = {
+      enumerable: true,
+      configurable: true,
+      get: noop,
+      set: noop
+    }*/
+
+  // 如果 computed是写的函数配置，则没有定义set
   if (typeof userDef === 'function') {
     sharedPropertyDefinition.get = shouldCache
-      ? createComputedGetter(key)
-      : createGetterInvoker(userDef)
+      ? createComputedGetter(key) // 不是服务端渲染走这个 反回一个get 方法
+      : createGetterInvoker(userDef) // 否则走这个 同样反回一个get 方法
     sharedPropertyDefinition.set = noop
   } else {
+    // 否则computed写的是对象配置，则可能定义了set
     sharedPropertyDefinition.get = userDef.get
+      // 不是服务端渲染 并且 没设cache属性
       ? shouldCache && userDef.cache !== false
-        ? createComputedGetter(key)
-        : createGetterInvoker(userDef.get)
+        ? createComputedGetter(key)  // 反回一个get 方法
+        : createGetterInvoker(userDef.get)  // 同样反回一个get 方法
       : noop
+    // 有set 则赋值 set
     sharedPropertyDefinition.set = userDef.set || noop
   }
   if (process.env.NODE_ENV !== 'production' &&
@@ -241,19 +281,80 @@ export function defineComputed (
       )
     }
   }
+
+  // 劫持computed 的数据获取与修改，并挂载在Vue 实例this上
+  // 所以computed 的调用，不会跑defineReactive中的get劫持，而是跑的这里
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
 function createComputedGetter (key) {
+  // 反回封装过的get 方法， 当页面中调用 computed 中的这个key时，才会走computedGetter内部方法
+  // 所以computed 的调用，不会跑defineReactive中的get劫持，而是跑的这里
+  // 因为初始化时，没在 observe中处理，像data 则传入了 observe 中
+
+  /*
+    在跑页面时，初始化 跑了 mountComponent 内部 new Watcher 并把 updateComponent 当参
+    则初始化就做了一次依赖收集  则targetStack 中已经有了一个 组件渲染Watcher
+    此时 targetStack为 [渲染wathcer]
+    接着跑render 时 如果遇到 computed $watch 的值 如下面的 computed: count
+    就会触发get 并执行第二次依赖收集，即跑到下面 computedGetter 函数中了
+    此时内部  watcher.evaluate() 执行了 watcher的get方法 get方法又 pushTarget
+    此时 targetStack为 [渲染wathcer, computed的wathcer]
+    接着调用 computed count的get 函数 count() { return this.list.length }
+    则computed Watcher 被 list 的defineReactive 做依赖收集
+    并且dep 与watcher 是双向收集的, 所以这里主要是给当前computed wathcer收集dep
+
+    export function popTarget () {
+      targetStack.pop()
+      Dep.target = targetStack[targetStack.length - 1]
+    }
+    当上面跑完，即 watcher.evaluate() 执行完了，内部又跑了 popTarget
+    此时 targetStack为 [渲染wathcer]
+    当跑到下面  watcher.depend() 时 Dep.target = 渲染wathcer
+    即把 渲染 watcher 加入到当前收集到的所有dep中
+    当computed get 方法中依赖的数据发生变更，则更新整个组件渲染函数
+
+    render(h) {
+      h('div', this.count)
+    }
+   */
   return function computedGetter () {
+    // 通过key 获取匹配的 watcher
     const watcher = this._computedWatchers && this._computedWatchers[key]
     if (watcher) {
+      // dirty： 如果 watcher 是一个 懒处理的 computed、 computed 自带 lazy: true
+      // watcher 内部初始化时  this.dirty = this.lazy // for lazy watchers
       if (watcher.dirty) {
+      /*
+        evaluate () {
+          // 此时this.get 内部 会调用getter 即 computed 的get 方法
+          // 并且 watcher 内部的get 方法调用时 会 pushTarget(this)
+          // 所以调了这一次后，触发了computed get 内部的
+          // defineReactive依赖收集 (new Watcher时由于是dirty 所以不会自己调get)
+          // computed get方法中包含有 this.xxx 调用了data | vuex 的响应式数据
+
+          this.value = this.get()
+          this.dirty = false
+        }
+      */
         watcher.evaluate()
       }
+
+      // 把渲染watcher 添加到computed get 方法中依赖的属性的订阅里面去，这很关键
       if (Dep.target) {
+      /*
+        则收集 watcher
+        depend () {
+          let i = this.deps.length
+          while (i--) {
+            // 给每一个 computed get 方法中依赖的属性dep 添加组件渲染watcher
+            this.deps[i].depend()
+          }
+        }
+        */
         watcher.depend()
       }
+      // 返回从 wathcer 中执行 get 获取到的值
       return watcher.value
     }
   }

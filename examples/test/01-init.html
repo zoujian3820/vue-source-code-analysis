@@ -22,6 +22,7 @@
       <button @click="onclick">Event事件onclick</button>
       {{obj.gg}}
       <comp></comp>
+      computed 》count：{{count}}
     </div>
     <script>
       // Vue.performance = true;
@@ -39,8 +40,23 @@
             template: '<div>我是局部组件</div>'
           }
         },
+        computed: {
+          count() {
+            return this.list.length
+          },
+          lens: {
+            get() {
+              return this.tabs.length
+            },
+            set(v) {
+              this.tabs.push(v)
+            }
+          }
+        },
         data() {
           return {
+            list: [1,2],
+            tabs: [3,5],
             obj: {gg: 3},
           };
         },
@@ -51,6 +67,9 @@
             this.obj.gg = 222
           },
         },
+        beforeCreate() {
+          console.log(666)
+        }
       });
 
       const extComponent = Vue.extend({
