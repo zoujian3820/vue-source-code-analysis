@@ -301,18 +301,32 @@ function createComputedGetter (key) {
     此时内部  watcher.evaluate() 执行了 watcher的get方法 get方法又 pushTarget
     此时 targetStack为 [渲染wathcer, computed的wathcer]
     接着调用 computed count的get 函数 count() { return this.list.length }
-    则computed Watcher 被 list 的defineReactive 做依赖收集
-    并且dep 与watcher 是双向收集的, 所以这里主要是给当前computed wathcer收集dep
+    则computed Watcher 被 list 的defineReactive 做依赖收集,
+    此时 list 的dep上收集的watcher为 [computed Watcher]
+
+    当list发生变更，则执行computed Watcher的update方法，其内部只是把 dirty 更新为 true
+          dirty 只有在初始化时，设为了true, 而每次 computedGetter 执行了后，都会设为 false
+          只有等数据发生变化执行过 computed Watcher 时（dirty 改为了 true）
+          才会再次运行 computedGetter（这里就是缓存的原理）
+          因为 computedGetter  执行时，都加了判断 dirty 为true才往下走
+
+         正常更新时 deps中顺序为[computed Watcher, 组件渲染watcher]
+         所以是先执行 computed Watcher 把dirty 更新为 true  再执行 组件渲染watcher 调用 computedGetter 获取计算值
+
+    并且dep 与watcher 是双向收集的, 所以这里也给当前computed wathcer收集了list的dep
 
     export function popTarget () {
       targetStack.pop()
       Dep.target = targetStack[targetStack.length - 1]
     }
-    当上面跑完，即 watcher.evaluate() 执行完了，内部又跑了 popTarget
+    当上面跑完，即 watcher.evaluate() 执行完了，内部又跑了 popTarget 并 this.dirty = false
     此时 targetStack为 [渲染wathcer]
     当跑到下面  watcher.depend() 时 Dep.target = 渲染wathcer
-    即把 渲染 watcher 加入到当前收集到的所有dep中
-    当computed get 方法中依赖的数据发生变更，则更新整个组件渲染函数
+    即把 渲染 watcher 加入到当前收集到的所有dep中, 此时为list 的dep (因为count内部只依赖一个list数组)
+    此时 list 的dep上收集的watcher为 [computed Watcher, 渲染 watcher]
+
+    当computed get 方法中依赖的数据发生变更时，触发组件渲染watcher
+    其内部 render 就会调用 this.count 进而再次执行 computedGetter 获取computed计算值
 
     render(h) {
       h('div', this.count)
