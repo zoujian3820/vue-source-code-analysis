@@ -257,6 +257,7 @@ export function createPatchFunction (backend) {
       const isReactivated = isDef(vnode.componentInstance) && i.keepAlive
       // 前面安装的钩子就在hook属性里面
       if (isDef(i = i.hook) && isDef(i = i.init)) {
+        // 执行组件虚似dom init 初始化钩子
         i(vnode, false /* hydrating */)
       }
       // after calling the init hook, if the vnode is a child component

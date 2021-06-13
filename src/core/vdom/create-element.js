@@ -33,6 +33,17 @@ export function createElement (
   normalizationType: any,
   alwaysNormalize: boolean
 ): VNode | Array<VNode> {
+
+  // export function isPrimitive (value: any): boolean %checks {
+  //   return (
+  //     typeof value === 'string' ||
+  //     typeof value === 'number' ||
+  //     // $flow-disable-line
+  //     typeof value === 'symbol' ||
+  //     typeof value === 'boolean'
+  //   )
+  // }
+
   if (Array.isArray(data) || isPrimitive(data)) {
     normalizationType = children
     children = data
@@ -44,6 +55,7 @@ export function createElement (
   return _createElement(context, tag, data, children, normalizationType)
 }
 
+// 此方法就是用户实际调用的 h  最终返回一个 vnode
 export function _createElement (
   context: Component,
   tag?: string | Class<Component> | Function | Object,
@@ -92,12 +104,14 @@ export function _createElement (
   } else if (normalizationType === SIMPLE_NORMALIZE) {
     children = simpleNormalizeChildren(children)
   }
-  // vnode生成
+  // 以上先忽略， 主要看这里  这个vnode就是最终返回的虚似dom
   let vnode, ns
+  // 根据传入的标签类型和名称，做对应处理
+  // 因为用户自己写的render函数，h 传入的参不一致, 并且 h 可以传入组件当参数 h(comp)
   if (typeof tag === 'string') {
     let Ctor
     ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag)
-    // 保留标签：div p span
+    // 保留标签，如：div p span
     if (config.isReservedTag(tag)) {
       // platform built-in elements
       if (process.env.NODE_ENV !== 'production' && isDef(data) && isDef(data.nativeOn)) {
@@ -106,14 +120,19 @@ export function _createElement (
           context
         )
       }
+      // 保留标签 直接创建虚似dom
       vnode = new VNode(
         config.parsePlatformTagName(tag), data, children,
         undefined, undefined, context
       )
     } else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
-      // component
-      // 自定义组件的情况
-      // 上面的代码获取了自定义组件的构造函数
+      // component：
+      // 自定义组件的情况 获取构造函数 之前注册名称就派上用场，从components选项中获取即可
+      // context 实例 this
+      // data 选项配置等 ？？？？？
+      // tag 为组件名称
+      // Ctor：上面的代码获取了自定义组件的构造函数
+      // children 子元素|子组伯 ？？？？
       vnode = createComponent(Ctor, data, context, children, tag)
     } else {
       // unknown or unlisted namespaced elements

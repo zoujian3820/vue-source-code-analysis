@@ -48,7 +48,9 @@ export function initMixin (Vue: Class<Component>) {
       // internal component options needs special treatment.
       initInternalComponent(vm, options)
     } else {
+      // Vue初始化走这
       vm.$options = mergeOptions(
+        // 默认选项合并，如全局组件 就在此合并到 实例中
         resolveConstructorOptions(vm.constructor),
         options || {},
         vm
@@ -123,7 +125,9 @@ export function initInternalComponent (vm: Component, options: InternalComponent
 }
 
 export function resolveConstructorOptions (Ctor: Class<Component>) {
+  // 获取到实例构造函数Vue上的 全局系统 选项 options
   let options = Ctor.options
+  // 如果有继承的父级
   if (Ctor.super) {
     const superOptions = resolveConstructorOptions(Ctor.super)
     const cachedSuperOptions = Ctor.superOptions

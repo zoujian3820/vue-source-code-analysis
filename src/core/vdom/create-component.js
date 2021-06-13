@@ -33,8 +33,11 @@ import {
 } from 'weex/runtime/recycle-list/render-component-template'
 
 // inline hooks to be invoked on component VNodes during patch
+// 组件虚似dom的钩子 非 程序运行的生命周期钩子
 const componentVNodeHooks = {
   init (vnode: VNodeWithData, hydrating: boolean): ?boolean {
+    // 如果当前组件是缓存的，存在keep-alive中的组件
+    // 直接从缓存中获取，不需要再创建
     if (
       vnode.componentInstance &&
       !vnode.componentInstance._isDestroyed &&
@@ -45,16 +48,21 @@ const componentVNodeHooks = {
       const mountedNode: any = vnode // work around flow
       componentVNodeHooks.prepatch(mountedNode, mountedNode)
     } else {
-      //组件的实例化
+      // 通常走这里 初始化
+      // 获取组件的实例化
       const child = vnode.componentInstance = createComponentInstanceForVnode(
         vnode,
         activeInstance
       )
-      // 执行挂载
+      // 并执行挂载
+      // parent  created
+          // child created
+          // child mounted
+      // parent  mounted
       child.$mount(hydrating ? vnode.elm : undefined, hydrating)
     }
   },
-
+  // 更新钩子
   prepatch (oldVnode: MountedComponentVNode, vnode: MountedComponentVNode) {
     const options = vnode.componentOptions
     const child = vnode.componentInstance = oldVnode.componentInstance
@@ -115,7 +123,17 @@ export function createComponent (
   const baseCtor = context.$options._base
 
   // plain options object: turn it into a constructor
+/*  Vue.component('comp', {
+    template: '<div>{{name}}</div>',
+    data() {
+      return {
+        name: 'xxx'
+      }
+    }
+  })*/
+  // 标准化处理，如果传入的组件 构造器 不是函数是一个对象
   if (isObject(Ctor)) {
+    // 则通过 Vue.extend方法转换成 构造函数
     Ctor = baseCtor.extend(Ctor)
   }
 
@@ -129,6 +147,7 @@ export function createComponent (
   }
 
   // async component
+  // 异步组件处理
   let asyncFactory
   if (isUndef(Ctor.cid)) {
     asyncFactory = Ctor
@@ -154,8 +173,20 @@ export function createComponent (
   // component constructor creation
   resolveConstructorOptions(Ctor)
 
+
+  /*
+    Vue.component('comp', {
+      model: { prop: 'abcd', event: 'xxx'},
+      props: { abcd: String },
+      template: `<input type="text" :value="abcd" @input="$emit('xxx', $event.target.value)" />`
+    })
+
+   // 调用
+   <comp v-model="selectFramework" />
+  */
+
   // transform component v-model data into props & events
-  // data中存在v-model选项时，做的相应操作
+  // 组件options 中存在model选项时，即代表有设置 自定义v-model的配置
   if (isDef(data.model)) {
     transformModel(Ctor.options, data)
   }
@@ -164,7 +195,17 @@ export function createComponent (
   const propsData = extractPropsFromVNodeData(data, Ctor, tag)
 
   // functional component
+  // 函数式组件
   if (isTrue(Ctor.options.functional)) {
+  /*
+  {
+    functional: true,
+    props: {},
+    render(h){
+      return h('a')
+    }
+  }
+  */
     return createFunctionalComponent(Ctor, propsData, data, context, children)
   }
 
@@ -172,11 +213,39 @@ export function createComponent (
   // child component listeners instead of DOM listeners
 
   // 事件监听的处理
+  // 自定义事件
   const listeners = data.on
   // replace with listeners with .native modifier
   // so it gets processed during parent component patch.
+  // 原生事件
   data.on = data.nativeOn
 
+
+
+  /*
+   import {get, debounce, set} from 'loadsh';
+    export default {
+        name: 'debounce',
+        abstract: true, //标记为抽象组件
+        render({ data }) {
+            let vnode = this.$slots.default[0]; // 子组件的vnode
+            if (vnode) {
+                let event = get(vnode, `data.on.click`); // 子组件绑定的click事件
+                if (typeof event === 'function') {
+                    set(vnode, `data.on.click`, debounce(event, 1000));
+                }
+            }
+            return vnode;
+        }
+    };
+
+  <debounce>
+      <button @click="clickHandler">测试</button>
+  </debounce>
+  */
+
+  // 抽象组件 如 <keep-alive>、<transition>、<transition-group>
+  // 它们都有一个属性 abstract 为 true，表明是它一个抽象组件
   if (isTrue(Ctor.options.abstract)) {
     // abstract components do not keep anything
     // other than props & listeners & slot
@@ -233,12 +302,14 @@ export function createComponentInstanceForVnode (
     options.render = inlineTemplate.render
     options.staticRenderFns = inlineTemplate.staticRenderFns
   }
+  // new 组件的构造函数， 放在了vnode.componentOptions.Ctor中
   return new vnode.componentOptions.Ctor(options)
 }
 
 function installComponentHooks (data: VNodeData) {
   const hooks = data.hook || (data.hook = {})
   // 合并同户和默认管理钩子
+  // hooksToMerge： componentVNodeHooks 钩子的key数组
   for (let i = 0; i < hooksToMerge.length; i++) {
     const key = hooksToMerge[i]
     const existing = hooks[key]

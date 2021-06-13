@@ -32,6 +32,7 @@ export function initExtend (Vue: GlobalAPI) {
 
     const Sub = function VueComponent (options) {
       // 和Vue的内部初始化_init一样
+      // 最终调用组件会 new Sub
       this._init(options)
     }
     // 浅拷贝Vue的原型
@@ -44,6 +45,7 @@ export function initExtend (Vue: GlobalAPI) {
       Super.options,
       extendOptions
     )
+    // 把super指向继承的父类Vue
     Sub['super'] = Super
 
     // For props and computed properties, we define the proxy getters on
