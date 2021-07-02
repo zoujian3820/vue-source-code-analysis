@@ -228,7 +228,7 @@ function initComputed (vm: Component, computed: Object) {
     // at instantiation here.
     // 确定 当前的computed key 是否没被其他地方设置过 如data methods props 等 可能重名
     if (!(key in vm)) {
-      // 给Vue实例this 定义 definedProperty 存取器
+      // 给Vue实例this 定义 defineProperty 存取器
       // 并以 computed 的key  作key 使用 这样就可直接 this调用  this.xxxx
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
@@ -362,6 +362,13 @@ function createComputedGetter (key) {
           let i = this.deps.length
           while (i--) {
             // 给每一个 computed get 方法中依赖的属性dep 添加组件渲染watcher
+            // 因为 computed 中写的依赖数据，可能并没在页面中使用，仅放入了computed 则此时这几个依赖就没有做 渲染wathcer的依赖收集
+            // 而上面跑 watcher.evaluate() 时 内部通过 defineProperty get 拦截，
+            // 跑了 depend 收集了当前的 computed Watcher 而 watcher和dep本身是相互收集的, 所以也就相当于获取到了其所有 依赖项的 dep
+            // 而当这些个依赖数据更新时，由于没有绑定渲染watcher 则computed的值不会被更新在页面中
+            // 那么此时就是把这些个依赖的key 的dep 一一或取到，并执行 dep.depend() 此时它会调 Dep.target.addDep(this)做相互收集
+            // 而此时的 Dep.target 在跑完上面 watcher.evaluate() 中的 get方法后 内部  popTarget() 执行了 Dep.target = targetStack[targetStack.length - 1]
+            // 那么此时它的值 则是 渲染watcher
             this.deps[i].depend()
           }
         }
