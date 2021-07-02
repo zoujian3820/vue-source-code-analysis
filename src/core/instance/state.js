@@ -468,6 +468,22 @@ export function stateMixin (Vue: Class<Component>) {
     cb: any,
     options?: Object
   ): Function {
+  /*
+    this.$watch('c', (newVal, oldVal) => {
+      // 做点什么
+    }, { deep: true, immediate: true })
+  */
+
+  /*
+    this.$watch(() => (this.a + this.b), (newVal, oldVal) => {
+      // 表达式 `this.a + this.b` 每次得出一个不同的结果时
+      // 处理函数都会被调用。
+      // 这就像监听一个未被定义的计算属性
+
+      // 做点什么
+     })
+  */
+
     const vm: Component = this
     if (isPlainObject(cb)) {
       return createWatcher(vm, expOrFn, cb, options)

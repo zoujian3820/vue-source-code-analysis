@@ -52,6 +52,11 @@ export function initGlobalAPI(Vue: GlobalAPI) {
     return obj;
   };
 
+  // export const ASSET_TYPES = [
+  //   'component',
+  //   'directive',
+  //   'filter'
+  // ]
   Vue.options = Object.create(null);
   ASSET_TYPES.forEach((type) => {
     // 'component',
